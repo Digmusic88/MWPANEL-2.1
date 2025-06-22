@@ -6,6 +6,7 @@ import { seedCompetencies } from './02-competencies.seed';
 import { seedAreas } from './03-areas.seed';
 import { seedUsers } from './04-users.seed';
 import { seedAcademicStructure } from './05-academic-structure.seed';
+import { seedTeachers } from './06-teachers.seed';
 
 // Load environment variables
 config();
@@ -49,6 +50,10 @@ async function runSeeds() {
 
     console.log('🏫 Creando estructura académica...');
     await seedAcademicStructure(AppDataSource);
+    console.log('');
+
+    console.log('👨‍🏫 Creando profesores...');
+    await seedTeachers(AppDataSource);
     console.log('');
 
     console.log('🎉 ¡Semillas ejecutadas exitosamente!');
