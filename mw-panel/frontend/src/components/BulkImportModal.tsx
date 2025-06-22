@@ -30,7 +30,7 @@ import {
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import apiClient from '@services/apiClient';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 const { Panel } = Collapse;
 
 interface BulkImportResult {
@@ -454,7 +454,7 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
                     columns={errorColumns}
                     pagination={{ pageSize: 10 }}
                     size="small"
-                    rowKey={(record, index) => `error-${index}`}
+                    rowKey={(_, index) => `error-${index}`}
                   />
                 </Panel>
               )}
@@ -474,7 +474,7 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
                     columns={errorColumns}
                     pagination={{ pageSize: 10 }}
                     size="small"
-                    rowKey={(record, index) => `warning-${index}`}
+                    rowKey={(_, index) => `warning-${index}`}
                   />
                 </Panel>
               )}
