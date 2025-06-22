@@ -1,0 +1,71 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { StudentsModule } from './modules/students/students.module';
+import { TeachersModule } from './modules/teachers/teachers.module';
+import { FamiliesModule } from './modules/families/families.module';
+import { EnrollmentModule } from './modules/enrollment/enrollment.module';
+import { EvaluationsModule } from './modules/evaluations/evaluations.module';
+import { CompetenciesModule } from './modules/competencies/competencies.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import databaseConfig from './config/database.config';
+import appConfig from './config/app.config';
+
+@Module({
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [appConfig, databaseConfig],
+      envFilePath: '.env',
+    }),
+
+    // Database
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('database.host'),
+        port: configService.get('database.port'),
+        username: configService.get('database.username'),
+        password: configService.get('database.password'),
+        database: configService.get('database.name'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // Enable for initial setup
+        logging: configService.get('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
+    }),
+
+    // Feature modules
+    AuthModule,
+    UsersModule,
+    StudentsModule,
+    TeachersModule,
+    FamiliesModule,
+    EnrollmentModule,
+    EvaluationsModule,
+    CompetenciesModule,
+    ReportsModule,
+    DashboardModule,
+  ],
+  controllers: [],
+  providers: [
+    // Global guards
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
+})
+export class AppModule {}

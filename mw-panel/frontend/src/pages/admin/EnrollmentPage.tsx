@@ -1,0 +1,1202 @@
+import React, { useState, useEffect } from 'react'
+import {
+  Card,
+  Steps,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Row,
+  Col,
+  Button,
+  message,
+  Typography,
+  Alert,
+  Checkbox,
+  Divider,
+  Spin,
+  Modal,
+} from 'antd'
+import {
+  UserOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  HomeOutlined,
+  IdcardOutlined,
+  SaveOutlined,
+  DeleteOutlined,
+  ClockCircleOutlined,
+  EyeOutlined,
+} from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import dayjs from 'dayjs'
+import apiClient from '@services/apiClient'
+
+const { Title, Text } = Typography
+const { Option } = Select
+
+// Interfaces
+interface EducationalLevel {
+  id: string
+  name: string
+}
+
+interface Course {
+  id: string
+  name: string
+  educationalLevel: EducationalLevel
+}
+
+
+interface EnrollmentFormData {
+  // Student data
+  studentFirstName: string
+  studentLastName: string
+  studentEmail: string
+  studentPassword: string
+  studentBirthDate: string
+  studentDocumentNumber?: string
+  studentPhone?: string
+  enrollmentNumber: string
+  educationalLevelId: string
+  courseId?: string
+  classGroupIds?: string[]
+
+  // Family data
+  createNewFamily: boolean
+  existingFamilyId?: string
+  
+  // Primary contact
+  primaryFirstName: string
+  primaryLastName: string
+  primaryEmail: string
+  primaryPassword: string
+  primaryPhone: string
+  primaryDocumentNumber?: string
+  primaryDateOfBirth?: string
+  primaryAddress?: string
+  primaryOccupation?: string
+  relationshipToPrimary: 'father' | 'mother' | 'guardian' | 'other'
+
+  // Secondary contact (optional)
+  hasSecondaryContact: boolean
+  secondaryFirstName?: string
+  secondaryLastName?: string
+  secondaryEmail?: string
+  secondaryPassword?: string
+  secondaryPhone?: string
+  secondaryDocumentNumber?: string
+  secondaryDateOfBirth?: string
+  secondaryAddress?: string
+  secondaryOccupation?: string
+  relationshipToSecondary?: 'father' | 'mother' | 'guardian' | 'other'
+}
+
+const EnrollmentPage: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState(0)
+  const [form] = Form.useForm<EnrollmentFormData>()
+  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
+
+  // Academic data
+  const [educationalLevels, setEducationalLevels] = useState<EducationalLevel[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [existingFamilies, setExistingFamilies] = useState<any[]>([])
+
+  // Form data state
+  const [formData, setFormData] = useState<Partial<EnrollmentFormData>>({
+    createNewFamily: true,
+    hasSecondaryContact: false,
+    relationshipToPrimary: 'mother',
+    relationshipToSecondary: 'father'
+  })
+
+  // Draft management
+  const [draftSaved, setDraftSaved] = useState(false)
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
+  const [showDraftModal, setShowDraftModal] = useState(false)
+  const [draftData, setDraftData] = useState<any>(null)
+  const DRAFT_KEY = 'enrollment-draft'
+
+  // Fetch initial data
+  const fetchInitialData = async () => {
+    setLoading(true)
+    try {
+      // In a real implementation, you would fetch:
+      // - Educational levels
+      // - Courses 
+      // - Class groups
+      // - Existing families for selection
+      
+      // Mock data for now
+      setEducationalLevels([
+        { id: '1', name: 'Educación Infantil' },
+        { id: '2', name: 'Educación Primaria' },
+        { id: '3', name: 'Educación Secundaria' }
+      ])
+      
+      setCourses([
+        { id: '1', name: '3 años', educationalLevel: { id: '1', name: 'Educación Infantil' } },
+        { id: '2', name: '4 años', educationalLevel: { id: '1', name: 'Educación Infantil' } },
+        { id: '3', name: '1º Primaria', educationalLevel: { id: '2', name: 'Educación Primaria' } },
+        { id: '4', name: '2º Primaria', educationalLevel: { id: '2', name: 'Educación Primaria' } },
+      ])
+
+      // Fetch existing families
+      const familiesResponse = await apiClient.get('/families')
+      setExistingFamilies(familiesResponse.data)
+      
+    } catch (error) {
+      message.error('Error al cargar datos iniciales')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchInitialData()
+    loadDraft()
+  }, [])
+
+  // Draft functions
+  const saveDraft = () => {
+    const currentValues = form.getFieldsValue()
+    const draftData = {
+      ...currentValues,
+      currentStep,
+      savedAt: new Date().toISOString()
+    }
+    
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData))
+    setDraftSaved(true)
+    setLastSavedTime(new Date())
+    message.success('Borrador guardado exitosamente')
+    
+    // Reset draft saved indicator after 3 seconds
+    setTimeout(() => setDraftSaved(false), 3000)
+  }
+
+  const loadDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY)
+      if (savedDraft) {
+        const draftData = JSON.parse(savedDraft)
+        
+        // Convert date strings back to dayjs objects for DatePicker components
+        const processedData = { ...draftData }
+        if (processedData.studentBirthDate) {
+          processedData.studentBirthDate = dayjs(processedData.studentBirthDate)
+        }
+        if (processedData.primaryDateOfBirth) {
+          processedData.primaryDateOfBirth = dayjs(processedData.primaryDateOfBirth)
+        }
+        if (processedData.secondaryDateOfBirth) {
+          processedData.secondaryDateOfBirth = dayjs(processedData.secondaryDateOfBirth)
+        }
+        
+        // Set form values with processed data
+        form.setFieldsValue(processedData)
+        setFormData(processedData)
+        
+        // Restore step
+        if (typeof draftData.currentStep === 'number') {
+          setCurrentStep(draftData.currentStep)
+        }
+        
+        // Set last saved time
+        if (draftData.savedAt) {
+          setLastSavedTime(new Date(draftData.savedAt))
+        }
+        
+        message.info('Borrador cargado automáticamente')
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error)
+    }
+  }
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY)
+    setDraftSaved(false)
+    setLastSavedTime(null)
+    message.success('Borrador eliminado')
+  }
+
+  const hasDraft = () => {
+    return localStorage.getItem(DRAFT_KEY) !== null
+  }
+
+  const viewDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY)
+      if (savedDraft) {
+        const parsedDraft = JSON.parse(savedDraft)
+        setDraftData(parsedDraft)
+        setShowDraftModal(true)
+      }
+    } catch (error) {
+      console.error('Error viewing draft:', error)
+      message.error('Error al cargar el borrador')
+    }
+  }
+
+  const loadDraftFromModal = () => {
+    if (draftData) {
+      // Convert date strings back to dayjs objects for DatePicker components
+      const processedData = { ...draftData }
+      if (processedData.studentBirthDate) {
+        processedData.studentBirthDate = dayjs(processedData.studentBirthDate)
+      }
+      if (processedData.primaryDateOfBirth) {
+        processedData.primaryDateOfBirth = dayjs(processedData.primaryDateOfBirth)
+      }
+      if (processedData.secondaryDateOfBirth) {
+        processedData.secondaryDateOfBirth = dayjs(processedData.secondaryDateOfBirth)
+      }
+      
+      // Set form values with processed data
+      form.setFieldsValue(processedData)
+      setFormData(processedData)
+      
+      // Restore step
+      if (typeof draftData.currentStep === 'number') {
+        setCurrentStep(draftData.currentStep)
+      }
+      
+      // Set last saved time
+      if (draftData.savedAt) {
+        setLastSavedTime(new Date(draftData.savedAt))
+      }
+      
+      setShowDraftModal(false)
+      message.success('Borrador cargado exitosamente')
+    }
+  }
+
+  // Filter courses by educational level
+  const filteredCourses = courses.filter(course => 
+    course.educationalLevel.id === form.getFieldValue('educationalLevelId')
+  )
+
+  // Steps configuration
+  const steps = [
+    {
+      title: 'Datos del Estudiante',
+      icon: <UserOutlined />,
+      description: 'Información personal y académica'
+    },
+    {
+      title: 'Información Familiar',
+      icon: <TeamOutlined />,
+      description: 'Contactos y datos familiares'
+    },
+    {
+      title: 'Confirmación',
+      icon: <CheckCircleOutlined />,
+      description: 'Revisar y confirmar inscripción'
+    }
+  ]
+
+  // Navigation handlers
+  const nextStep = async () => {
+    try {
+      // Validate current step fields
+      if (currentStep === 0) {
+        await form.validateFields([
+          'studentFirstName', 'studentLastName', 'studentEmail', 'studentPassword',
+          'studentBirthDate', 'enrollmentNumber', 'educationalLevelId'
+        ])
+      } else if (currentStep === 1) {
+        const createNewFamily = form.getFieldValue('createNewFamily')
+        if (createNewFamily) {
+          const fieldsToValidate = [
+            'primaryFirstName', 'primaryLastName', 'primaryEmail', 'primaryPassword',
+            'primaryPhone', 'relationshipToPrimary'
+          ]
+          
+          const hasSecondaryContact = form.getFieldValue('hasSecondaryContact')
+          if (hasSecondaryContact) {
+            fieldsToValidate.push(
+              'secondaryFirstName', 'secondaryLastName', 'secondaryEmail', 
+              'secondaryPassword', 'secondaryPhone', 'relationshipToSecondary'
+            )
+          }
+          
+          await form.validateFields(fieldsToValidate)
+        } else {
+          await form.validateFields(['existingFamilyId'])
+        }
+      }
+      
+      // Update formData with current form values
+      const currentValues = form.getFieldsValue()
+      setFormData(currentValues)
+      
+      // Auto-save draft when moving to next step
+      const draftData = {
+        ...currentValues,
+        currentStep: currentStep + 1,
+        savedAt: new Date().toISOString()
+      }
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData))
+      
+      setCurrentStep(currentStep + 1)
+    } catch (error) {
+      console.error('Validation failed:', error)
+    }
+  }
+
+  const prevStep = () => {
+    setCurrentStep(currentStep - 1)
+  }
+
+  // Submit enrollment
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true)
+      const values = await form.validateFields()
+      
+      // Prepare enrollment data
+      const enrollmentData = {
+        student: {
+          firstName: values.studentFirstName,
+          lastName: values.studentLastName,
+          email: values.studentEmail,
+          password: values.studentPassword,
+          birthDate: dayjs(values.studentBirthDate).format('YYYY-MM-DD'),
+          documentNumber: values.studentDocumentNumber,
+          phone: values.studentPhone,
+          enrollmentNumber: values.enrollmentNumber,
+          educationalLevelId: values.educationalLevelId,
+          courseId: values.courseId,
+          classGroupIds: values.classGroupIds || []
+        },
+        family: values.createNewFamily ? {
+          primaryContact: {
+            firstName: values.primaryFirstName,
+            lastName: values.primaryLastName,
+            email: values.primaryEmail,
+            password: values.primaryPassword,
+            phone: values.primaryPhone,
+            documentNumber: values.primaryDocumentNumber,
+            dateOfBirth: values.primaryDateOfBirth ? dayjs(values.primaryDateOfBirth).format('YYYY-MM-DD') : undefined,
+            address: values.primaryAddress,
+            occupation: values.primaryOccupation,
+          },
+          ...(values.hasSecondaryContact && {
+            secondaryContact: {
+              firstName: values.secondaryFirstName,
+              lastName: values.secondaryLastName,
+              email: values.secondaryEmail,
+              password: values.secondaryPassword,
+              phone: values.secondaryPhone,
+              documentNumber: values.secondaryDocumentNumber,
+              dateOfBirth: values.secondaryDateOfBirth ? dayjs(values.secondaryDateOfBirth).format('YYYY-MM-DD') : undefined,
+              address: values.secondaryAddress,
+              occupation: values.secondaryOccupation,
+            }
+          }),
+          relationship: values.relationshipToPrimary
+        } : {
+          existingFamilyId: values.existingFamilyId,
+          relationship: values.relationshipToPrimary
+        }
+      }
+
+      console.log('Sending enrollment data:', enrollmentData)
+
+      // Submit enrollment
+      await apiClient.post('/enrollment', enrollmentData)
+      
+      // Clear draft on successful submission
+      clearDraft()
+      
+      message.success('Inscripción completada exitosamente')
+      navigate('/admin/students')
+      
+    } catch (error: any) {
+      console.error('Enrollment error:', error)
+      message.error(error.response?.data?.message || 'Error al procesar la inscripción')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip="Cargando datos de inscripción..." />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <Title level={2} className="!mb-2">
+            Formulario de Inscripción
+          </Title>
+          <Text type="secondary">
+            Registro completo de estudiante y familia en el sistema educativo
+          </Text>
+        </div>
+        
+        {/* Draft Management */}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
+            <Button 
+              icon={<SaveOutlined />} 
+              onClick={saveDraft}
+              type={draftSaved ? "primary" : "default"}
+            >
+              {draftSaved ? "Guardado!" : "Guardar Borrador"}
+            </Button>
+            
+            {hasDraft() && (
+              <>
+                <Button 
+                  icon={<EyeOutlined />} 
+                  onClick={viewDraft}
+                  type="default"
+                >
+                  Ver Borrador
+                </Button>
+                <Button 
+                  icon={<DeleteOutlined />} 
+                  onClick={clearDraft}
+                  type="text"
+                  danger
+                >
+                  Limpiar Borrador
+                </Button>
+              </>
+            )}
+          </div>
+          
+          {lastSavedTime && (
+            <Text type="secondary" className="text-xs flex items-center gap-1">
+              <ClockCircleOutlined />
+              Último guardado: {lastSavedTime.toLocaleTimeString()}
+            </Text>
+          )}
+        </div>
+      </div>
+
+      {/* Steps */}
+      <Card>
+        <Steps current={currentStep} items={steps} />
+      </Card>
+
+      {/* Draft Info Alert */}
+      {hasDraft() && currentStep === 0 && (
+        <Alert
+          message="Borrador Disponible"
+          description="Se han cargado datos de un borrador anterior. Los datos se guardan automáticamente al avanzar entre pasos."
+          type="info"
+          showIcon
+          closable
+        />
+      )}
+
+      {/* Form Content */}
+      <Card>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={formData}
+          onValuesChange={(_, allValues) => {
+            setFormData(allValues)
+          }}
+        >
+          {/* Step 0: Student Information */}
+          {currentStep === 0 && (
+            <div className="space-y-6">
+              <Alert
+                message="Información del Estudiante"
+                description="Complete todos los datos personales y académicos del estudiante que se va a inscribir."
+                type="info"
+                showIcon
+              />
+
+              <div>
+                <Title level={4}>Datos Personales</Title>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="studentFirstName"
+                      label="Nombre"
+                      rules={[{ required: true, message: 'El nombre es requerido' }]}
+                    >
+                      <Input placeholder="Nombre del estudiante" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="studentLastName"
+                      label="Apellidos"
+                      rules={[{ required: true, message: 'Los apellidos son requeridos' }]}
+                    >
+                      <Input placeholder="Apellidos del estudiante" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="studentEmail"
+                      label="Email"
+                      rules={[
+                        { required: true, message: 'El email es requerido' },
+                        { type: 'email', message: 'Email no válido' }
+                      ]}
+                    >
+                      <Input prefix={<MailOutlined />} placeholder="email@ejemplo.com" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="studentPassword"
+                      label="Contraseña"
+                      rules={[
+                        { required: true, message: 'La contraseña es requerida' },
+                        { min: 6, message: 'Mínimo 6 caracteres' }
+                      ]}
+                    >
+                      <Input.Password placeholder="Contraseña para el acceso" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Form.Item
+                      name="studentBirthDate"
+                      label="Fecha de Nacimiento"
+                      rules={[{ required: true, message: 'La fecha de nacimiento es requerida' }]}
+                    >
+                      <DatePicker 
+                        placeholder="Selecciona fecha" 
+                        format="DD/MM/YYYY"
+                        className="w-full"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="studentDocumentNumber"
+                      label="DNI/NIE"
+                    >
+                      <Input prefix={<IdcardOutlined />} placeholder="12345678A" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="studentPhone"
+                      label="Teléfono"
+                    >
+                      <Input prefix={<PhoneOutlined />} placeholder="+34 600 000 000" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              <div>
+                <Title level={4}>Información Académica</Title>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="enrollmentNumber"
+                      label="Número de Matrícula"
+                      rules={[{ required: true, message: 'El número de matrícula es requerido' }]}
+                    >
+                      <Input placeholder="MT-2024-001" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="educationalLevelId"
+                      label="Nivel Educativo"
+                      rules={[{ required: true, message: 'Selecciona un nivel educativo' }]}
+                    >
+                      <Select placeholder="Seleccionar nivel educativo">
+                        {educationalLevels.map(level => (
+                          <Option key={level.id} value={level.id}>
+                            {level.name}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                {form.getFieldValue('educationalLevelId') && (
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="courseId"
+                        label="Curso"
+                      >
+                        <Select placeholder="Seleccionar curso">
+                          {filteredCourses.map(course => (
+                            <Option key={course.id} value={course.id}>
+                              {course.name}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 1: Family Information */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <Alert
+                message="Información Familiar"
+                description="Configure los contactos familiares que tendrán acceso al seguimiento académico del estudiante."
+                type="info"
+                showIcon
+              />
+
+              {/* Family Selection */}
+              <div>
+                <Title level={4}>Configuración Familiar</Title>
+                <Form.Item name="createNewFamily" valuePropName="checked">
+                  <Checkbox
+                    checked={formData.createNewFamily}
+                    onChange={(e) => {
+                      const createNew = e.target.checked
+                      form.setFieldValue('createNewFamily', createNew)
+                      if (!createNew) {
+                        // Clear family creation fields
+                        const familyFields = [
+                          'primaryFirstName', 'primaryLastName', 'primaryEmail', 'primaryPassword',
+                          'primaryPhone', 'primaryDocumentNumber', 'primaryDateOfBirth', 
+                          'primaryAddress', 'primaryOccupation', 'hasSecondaryContact'
+                        ]
+                        familyFields.forEach(field => form.setFieldValue(field as any, undefined))
+                      }
+                    }}
+                  >
+                    Crear nueva familia
+                  </Checkbox>
+                </Form.Item>
+
+                {!formData.createNewFamily && (
+                  <Form.Item
+                    name="existingFamilyId"
+                    label="Seleccionar Familia Existente"
+                    rules={[{ required: !formData.createNewFamily, message: 'Selecciona una familia' }]}
+                  >
+                    <Select placeholder="Buscar y seleccionar familia">
+                      {existingFamilies.map(family => (
+                        <Option key={family.id} value={family.id}>
+                          {family.primaryContact.profile.firstName} {family.primaryContact.profile.lastName}
+                          {family.secondaryContact && (
+                            <span> / {family.secondaryContact.profile.firstName} {family.secondaryContact.profile.lastName}</span>
+                          )}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
+              </div>
+
+              {/* Primary Contact */}
+              {formData.createNewFamily && (
+                <>
+                  <div>
+                    <Title level={4}>Contacto Principal</Title>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="primaryFirstName"
+                          label="Nombre"
+                          rules={[{ required: formData.createNewFamily, message: 'El nombre es requerido' }]}
+                        >
+                          <Input placeholder="Nombre del contacto principal" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="primaryLastName"
+                          label="Apellidos"
+                          rules={[{ required: formData.createNewFamily, message: 'Los apellidos son requeridos' }]}
+                        >
+                          <Input placeholder="Apellidos del contacto principal" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          name="primaryEmail"
+                          label="Email"
+                          rules={formData.createNewFamily ? [
+                            { required: true, message: 'El email es requerido' },
+                            { type: 'email', message: 'Email no válido' }
+                          ] : []}
+                        >
+                          <Input prefix={<MailOutlined />} placeholder="email@ejemplo.com" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="primaryPassword"
+                          label="Contraseña"
+                          rules={formData.createNewFamily ? [
+                            { required: true, message: 'La contraseña es requerida' },
+                            { min: 6, message: 'Mínimo 6 caracteres' }
+                          ] : []}
+                        >
+                          <Input.Password placeholder="Contraseña para el acceso" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="primaryPhone"
+                          label="Teléfono"
+                          rules={formData.createNewFamily ? [{ required: true, message: 'El teléfono es requerido' }] : []}
+                        >
+                          <Input prefix={<PhoneOutlined />} placeholder="+34 600 000 000" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          name="relationshipToPrimary"
+                          label="Relación con el Estudiante"
+                          rules={[{ required: true, message: 'Especifica la relación familiar' }]}
+                        >
+                          <Select placeholder="Seleccionar relación">
+                            <Option value="mother">Madre</Option>
+                            <Option value="father">Padre</Option>
+                            <Option value="guardian">Tutor/a</Option>
+                            <Option value="other">Otro</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="primaryDocumentNumber"
+                          label="DNI/NIE"
+                        >
+                          <Input prefix={<IdcardOutlined />} placeholder="12345678A" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="primaryDateOfBirth"
+                          label="Fecha de Nacimiento"
+                        >
+                          <DatePicker 
+                            placeholder="Selecciona fecha" 
+                            format="DD/MM/YYYY"
+                            className="w-full"
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="primaryAddress"
+                          label="Dirección"
+                        >
+                          <Input prefix={<HomeOutlined />} placeholder="Calle Mayor, 123, Madrid" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="primaryOccupation"
+                          label="Ocupación"
+                        >
+                          <Input placeholder="Profesión o ocupación" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* Secondary Contact Toggle */}
+                  <div>
+                    <Form.Item name="hasSecondaryContact" valuePropName="checked">
+                      <Checkbox
+                        checked={formData.hasSecondaryContact}
+                        onChange={(e) => {
+                          const hasSecondary = e.target.checked
+                          form.setFieldValue('hasSecondaryContact', hasSecondary)
+                          if (!hasSecondary) {
+                            // Clear secondary contact fields
+                            const secondaryFields = [
+                              'secondaryFirstName', 'secondaryLastName', 'secondaryEmail',
+                              'secondaryPassword', 'secondaryPhone', 'secondaryDocumentNumber',
+                              'secondaryDateOfBirth', 'secondaryAddress', 'secondaryOccupation',
+                              'relationshipToSecondary'
+                            ]
+                            secondaryFields.forEach(field => form.setFieldValue(field as any, undefined))
+                          } else {
+                            // Set default relationship for secondary contact
+                            const primaryRelationship = form.getFieldValue('relationshipToPrimary')
+                            const defaultSecondaryRelationship = primaryRelationship === 'mother' ? 'father' : 'mother'
+                            form.setFieldValue('relationshipToSecondary', defaultSecondaryRelationship)
+                          }
+                        }}
+                      >
+                        Añadir contacto secundario (doble acceso familiar)
+                      </Checkbox>
+                    </Form.Item>
+
+                    {formData.hasSecondaryContact && (
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                        <Title level={4}>Contacto Secundario</Title>
+                        <Alert
+                          message="Doble Acceso Familiar"
+                          description="El contacto secundario tendrá acceso independiente al sistema para el seguimiento del estudiante."
+                          type="success"
+                          showIcon
+                          className="mb-4"
+                        />
+
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Form.Item
+                              name="secondaryFirstName"
+                              label="Nombre"
+                              rules={formData.hasSecondaryContact ? [{ required: true, message: 'El nombre es requerido' }] : []}
+                            >
+                              <Input placeholder="Nombre del contacto secundario" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="secondaryLastName"
+                              label="Apellidos"
+                              rules={formData.hasSecondaryContact ? [{ required: true, message: 'Los apellidos son requeridos' }] : []}
+                            >
+                              <Input placeholder="Apellidos del contacto secundario" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <Form.Item
+                              name="secondaryEmail"
+                              label="Email"
+                              rules={formData.hasSecondaryContact ? [
+                                { required: true, message: 'El email es requerido' },
+                                { type: 'email', message: 'Email no válido' }
+                              ] : []}
+                            >
+                              <Input prefix={<MailOutlined />} placeholder="email@ejemplo.com" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name="secondaryPassword"
+                              label="Contraseña"
+                              rules={formData.hasSecondaryContact ? [
+                                { required: true, message: 'La contraseña es requerida' },
+                                { min: 6, message: 'Mínimo 6 caracteres' }
+                              ] : []}
+                            >
+                              <Input.Password placeholder="Contraseña para el acceso" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name="secondaryPhone"
+                              label="Teléfono"
+                              rules={formData.hasSecondaryContact ? [{ required: true, message: 'El teléfono es requerido' }] : []}
+                            >
+                              <Input prefix={<PhoneOutlined />} placeholder="+34 600 000 000" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <Form.Item
+                              name="relationshipToSecondary"
+                              label="Relación con el Estudiante"
+                              rules={formData.hasSecondaryContact ? [{ required: true, message: 'Especifica la relación familiar' }] : []}
+                            >
+                              <Select placeholder="Seleccionar relación">
+                                <Option value="mother">Madre</Option>
+                                <Option value="father">Padre</Option>
+                                <Option value="guardian">Tutor/a</Option>
+                                <Option value="other">Otro</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name="secondaryDocumentNumber"
+                              label="DNI/NIE"
+                            >
+                              <Input prefix={<IdcardOutlined />} placeholder="12345678A" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name="secondaryDateOfBirth"
+                              label="Fecha de Nacimiento"
+                            >
+                              <DatePicker 
+                                placeholder="Selecciona fecha" 
+                                format="DD/MM/YYYY"
+                                className="w-full"
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Form.Item
+                              name="secondaryAddress"
+                              label="Dirección"
+                            >
+                              <Input prefix={<HomeOutlined />} placeholder="Calle Mayor, 123, Madrid" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="secondaryOccupation"
+                              label="Ocupación"
+                            >
+                              <Input placeholder="Profesión o ocupación" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Relationship for existing family */}
+              {!formData.createNewFamily && (
+                <Form.Item
+                  name="relationshipToPrimary"
+                  label="Relación del Estudiante con la Familia"
+                  rules={[{ required: true, message: 'Especifica la relación familiar' }]}
+                >
+                  <Select placeholder="Seleccionar relación">
+                    <Option value="mother">Hijo/a de la madre</Option>
+                    <Option value="father">Hijo/a del padre</Option>
+                    <Option value="guardian">Bajo tutela</Option>
+                    <Option value="other">Otra relación</Option>
+                  </Select>
+                </Form.Item>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Confirmation */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <Alert
+                message="Confirmar Inscripción"
+                description="Revise todos los datos antes de completar la inscripción. Una vez confirmada, se crearán las cuentas de acceso."
+                type="warning"
+                showIcon
+              />
+
+              <div>
+                <Title level={4}>Resumen de Inscripción</Title>
+                
+                {/* Student Summary */}
+                <Card title="Datos del Estudiante" size="small" className="mb-4">
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Text strong>Nombre Completo:</Text>
+                      <div>{formData.studentFirstName} {formData.studentLastName}</div>
+                    </Col>
+                    <Col span={12}>
+                      <Text strong>Email:</Text>
+                      <div>{formData.studentEmail}</div>
+                    </Col>
+                    <Col span={12}>
+                      <Text strong>Número de Matrícula:</Text>
+                      <div>{formData.enrollmentNumber}</div>
+                    </Col>
+                    <Col span={12}>
+                      <Text strong>Nivel Educativo:</Text>
+                      <div>{educationalLevels.find(l => l.id === formData.educationalLevelId)?.name}</div>
+                    </Col>
+                  </Row>
+                </Card>
+
+                {/* Family Summary */}
+                <Card title="Datos Familiares" size="small">
+                  {formData.createNewFamily ? (
+                    <>
+                      <div className="mb-4">
+                        <Text strong>Contacto Principal:</Text>
+                        <div>{formData.primaryFirstName} {formData.primaryLastName}</div>
+                        <div>{formData.primaryEmail} • {formData.primaryPhone}</div>
+                      </div>
+                      
+                      {formData.hasSecondaryContact && (
+                        <div>
+                          <Text strong>Contacto Secundario:</Text>
+                          <div>{formData.secondaryFirstName} {formData.secondaryLastName}</div>
+                          <div>{formData.secondaryEmail} • {formData.secondaryPhone}</div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div>
+                      <Text strong>Familia Existente:</Text>
+                      <div>Se asignará a la familia seleccionada</div>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-8 pt-4 border-t">
+            <Button 
+              onClick={prevStep} 
+              disabled={currentStep === 0}
+            >
+              Anterior
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/admin')}>
+                Cancelar
+              </Button>
+              
+              {currentStep < steps.length - 1 ? (
+                <Button type="primary" onClick={nextStep}>
+                  Siguiente
+                </Button>
+              ) : (
+                <Button 
+                  type="primary" 
+                  onClick={handleSubmit}
+                  loading={submitting}
+                >
+                  Completar Inscripción
+                </Button>
+              )}
+            </div>
+          </div>
+        </Form>
+      </Card>
+
+      {/* Draft Preview Modal */}
+      <Modal
+        title="Vista Previa del Borrador"
+        open={showDraftModal}
+        onCancel={() => setShowDraftModal(false)}
+        width={800}
+        footer={[
+          <Button key="cancel" onClick={() => setShowDraftModal(false)}>
+            Cancelar
+          </Button>,
+          <Button key="load" type="primary" onClick={loadDraftFromModal}>
+            Cargar Borrador
+          </Button>,
+        ]}
+      >
+        {draftData && (
+          <div className="space-y-4">
+            {/* Draft Info */}
+            <Alert
+              message="Información del Borrador"
+              description={
+                <div>
+                  <div>Guardado el: {draftData.savedAt ? new Date(draftData.savedAt).toLocaleString() : 'No disponible'}</div>
+                  <div>Paso actual: {draftData.currentStep + 1} de {steps.length}</div>
+                </div>
+              }
+              type="info"
+              showIcon
+            />
+
+            {/* Student Data Preview */}
+            <Card title="Datos del Estudiante" size="small">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text strong>Nombre:</Text>
+                  <div>{draftData.studentFirstName || 'No especificado'}</div>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Apellidos:</Text>
+                  <div>{draftData.studentLastName || 'No especificado'}</div>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Email:</Text>
+                  <div>{draftData.studentEmail || 'No especificado'}</div>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Número de Matrícula:</Text>
+                  <div>{draftData.enrollmentNumber || 'No especificado'}</div>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Nivel Educativo:</Text>
+                  <div>{educationalLevels.find(l => l.id === draftData.educationalLevelId)?.name || 'No especificado'}</div>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Fecha de Nacimiento:</Text>
+                  <div>{draftData.studentBirthDate ? dayjs(draftData.studentBirthDate).format('DD/MM/YYYY') : 'No especificado'}</div>
+                </Col>
+              </Row>
+            </Card>
+
+            {/* Family Data Preview */}
+            <Card title="Datos Familiares" size="small">
+              <div className="space-y-3">
+                <div>
+                  <Text strong>Tipo de Familia:</Text>
+                  <div>{draftData.createNewFamily ? 'Nueva familia' : 'Familia existente'}</div>
+                </div>
+                
+                {draftData.createNewFamily && (
+                  <>
+                    <Divider />
+                    <div>
+                      <Text strong>Contacto Principal:</Text>
+                      <div>{draftData.primaryFirstName} {draftData.primaryLastName}</div>
+                      <div>{draftData.primaryEmail} • {draftData.primaryPhone}</div>
+                    </div>
+                    
+                    {draftData.hasSecondaryContact && (
+                      <div>
+                        <Text strong>Contacto Secundario:</Text>
+                        <div>{draftData.secondaryFirstName} {draftData.secondaryLastName}</div>
+                        <div>{draftData.secondaryEmail} • {draftData.secondaryPhone}</div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
+
+export default EnrollmentPage
