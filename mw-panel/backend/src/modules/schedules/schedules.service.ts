@@ -375,14 +375,6 @@ export class SchedulesService {
 
   private async checkScheduleConflicts(scheduleDto: CreateScheduleSessionDto): Promise<void> {
     const { subjectAssignmentId, classroomId, timeSlotId, dayOfWeek, academicYearId } = scheduleDto;
-    
-    console.log('🔍 Checking schedule conflicts for:', {
-      subjectAssignmentId,
-      classroomId, 
-      timeSlotId,
-      dayOfWeek,
-      academicYearId
-    });
 
     // Check classroom conflict
     const classroomConflict = await this.scheduleSessionRepository.findOne({
@@ -400,18 +392,9 @@ export class SchedulesService {
     }
 
     // Check teacher conflict (teacher can't be in two places at once)
-    console.log('🔍 Fetching subject assignment with relations...');
     const subjectAssignment = await this.subjectAssignmentRepository.findOne({
       where: { id: subjectAssignmentId },
       relations: ['teacher', 'classGroup'],
-    });
-
-    console.log('📋 Subject assignment found:', {
-      id: subjectAssignment?.id,
-      hasTeacher: !!subjectAssignment?.teacher,
-      hasClassGroup: !!subjectAssignment?.classGroup,
-      teacherId: subjectAssignment?.teacher?.id,
-      classGroupId: subjectAssignment?.classGroup?.id
     });
 
     if (!subjectAssignment) {

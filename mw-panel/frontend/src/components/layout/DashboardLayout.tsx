@@ -98,6 +98,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 onClick: () => navigate('/admin/schedules'),
               },
               {
+                key: 'class-schedules',
+                label: 'Horarios por Grupo',
+                onClick: () => navigate('/admin/class-schedules'),
+              },
+              {
                 key: 'competencies',
                 label: 'Competencias',
                 onClick: () => navigate('/admin/competencies'),

@@ -6,6 +6,7 @@ import FamiliesPage from './FamiliesPage'
 import ClassGroupsPage from './ClassGroupsPage'
 import SubjectsPage from './SubjectsPage'
 import SchedulesPage from './SchedulesPage'
+import ClassSchedulesPage from './ClassSchedulesPage'
 import EnrollmentPage from './EnrollmentPage'
 import { Card, Row, Col, Statistic, Typography, Space, Progress, Spin, message } from 'antd'
 import apiClient from '@services/apiClient'
@@ -275,6 +276,7 @@ const AdminDashboard: React.FC = () => {
         <Route path="class-groups" element={<ClassGroupsPage />} />
         <Route path="subjects" element={<SubjectsPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
+        <Route path="class-schedules" element={<ClassSchedulesPage />} />
         <Route path="enrollment" element={<EnrollmentPage />} />
         <Route path="*" element={
           <div style={{ padding: '20px', backgroundColor: '#ffcccc', border: '2px solid orange' }}>

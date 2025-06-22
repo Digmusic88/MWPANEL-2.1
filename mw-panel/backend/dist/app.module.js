@@ -19,6 +19,7 @@ const families_module_1 = require("./modules/families/families.module");
 const class_groups_module_1 = require("./modules/class-groups/class-groups.module");
 const subjects_module_1 = require("./modules/subjects/subjects.module");
 const schedules_module_1 = require("./modules/schedules/schedules.module");
+const academic_years_module_1 = require("./modules/academic-years/academic-years.module");
 const enrollment_module_1 = require("./modules/enrollment/enrollment.module");
 const evaluations_module_1 = require("./modules/evaluations/evaluations.module");
 const competencies_module_1 = require("./modules/competencies/competencies.module");
@@ -62,6 +63,7 @@ exports.AppModule = AppModule = __decorate([
             class_groups_module_1.ClassGroupsModule,
             subjects_module_1.SubjectsModule,
             schedules_module_1.SchedulesModule,
+            academic_years_module_1.AcademicYearsModule,
             enrollment_module_1.EnrollmentModule,
             evaluations_module_1.EvaluationsModule,
             competencies_module_1.CompetenciesModule,

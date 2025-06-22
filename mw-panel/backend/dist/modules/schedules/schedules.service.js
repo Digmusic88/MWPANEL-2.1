@@ -294,13 +294,6 @@ let SchedulesService = class SchedulesService {
     }
     async checkScheduleConflicts(scheduleDto) {
         const { subjectAssignmentId, classroomId, timeSlotId, dayOfWeek, academicYearId } = scheduleDto;
-        console.log('🔍 Checking schedule conflicts for:', {
-            subjectAssignmentId,
-            classroomId,
-            timeSlotId,
-            dayOfWeek,
-            academicYearId
-        });
         const classroomConflict = await this.scheduleSessionRepository.findOne({
             where: {
                 classroom: { id: classroomId },
@@ -313,17 +306,9 @@ let SchedulesService = class SchedulesService {
         if (classroomConflict) {
             throw new common_1.ConflictException('El aula ya está ocupada en ese horario');
         }
-        console.log('🔍 Fetching subject assignment with relations...');
         const subjectAssignment = await this.subjectAssignmentRepository.findOne({
             where: { id: subjectAssignmentId },
             relations: ['teacher', 'classGroup'],
-        });
-        console.log('📋 Subject assignment found:', {
-            id: subjectAssignment?.id,
-            hasTeacher: !!subjectAssignment?.teacher,
-            hasClassGroup: !!subjectAssignment?.classGroup,
-            teacherId: subjectAssignment?.teacher?.id,
-            classGroupId: subjectAssignment?.classGroup?.id
         });
         if (!subjectAssignment) {
             throw new common_1.NotFoundException(`Asignación de asignatura con ID ${subjectAssignmentId} no encontrada`);
