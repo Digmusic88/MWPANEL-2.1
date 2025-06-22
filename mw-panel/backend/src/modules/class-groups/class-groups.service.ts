@@ -353,4 +353,23 @@ export class ClassGroupsService {
       where: { user: { isActive: true } },
     });
   }
+
+  async getAvailableCourses(): Promise<Course[]> {
+    const query = this.courseRepository
+      .createQueryBuilder('course')
+      .leftJoinAndSelect('course.cycle', 'cycle')
+      .leftJoinAndSelect('cycle.educationalLevel', 'educationalLevel')
+      .orderBy(`CASE educationalLevel.code 
+                 WHEN 'INFANTIL' THEN 1 
+                 WHEN 'PRIMARIA' THEN 2 
+                 WHEN 'SECUNDARIA' THEN 3 
+                 ELSE 4 END`, 'ASC')
+      .addOrderBy('cycle.order', 'ASC')
+      .addOrderBy('course.order', 'ASC');
+    
+    console.log('Available Courses Query:', query.getSql());
+    const result = await query.getMany();
+    console.log('Available Courses Result:', result.map(c => `${c.name} - ${c.cycle.educationalLevel.name}`));
+    return result;
+  }
 }

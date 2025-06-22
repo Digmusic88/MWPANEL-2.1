@@ -8,6 +8,7 @@ const _02_competencies_seed_1 = require("./02-competencies.seed");
 const _03_areas_seed_1 = require("./03-areas.seed");
 const _04_users_seed_1 = require("./04-users.seed");
 const _05_academic_structure_seed_1 = require("./05-academic-structure.seed");
+const _06_teachers_seed_1 = require("./06-teachers.seed");
 (0, dotenv_1.config)();
 const configService = new config_1.ConfigService();
 const AppDataSource = new typeorm_1.DataSource({
@@ -40,6 +41,9 @@ async function runSeeds() {
         console.log('');
         console.log('🏫 Creando estructura académica...');
         await (0, _05_academic_structure_seed_1.seedAcademicStructure)(AppDataSource);
+        console.log('');
+        console.log('👨‍🏫 Creando profesores...');
+        await (0, _06_teachers_seed_1.seedTeachers)(AppDataSource);
         console.log('');
         console.log('🎉 ¡Semillas ejecutadas exitosamente!');
         console.log('\n📋 Usuarios de prueba creados:');

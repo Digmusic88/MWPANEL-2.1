@@ -1,6 +1,23 @@
-import { CreateFamilyDto } from './create-family.dto';
-declare const UpdateFamilyDto_base: import("@nestjs/common").Type<Partial<CreateFamilyDto>>;
-export declare class UpdateFamilyDto extends UpdateFamilyDto_base {
-    id?: string;
+import { FamilyRelationship } from '../../users/entities/family.entity';
+export declare class UpdateFamilyContactDto {
+    email?: string;
+    password?: string;
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    documentNumber?: string;
+    phone?: string;
+    address?: string;
+    occupation?: string;
 }
-export {};
+export declare class UpdateFamilyStudentRelationDto {
+    studentId: string;
+    relationship: FamilyRelationship;
+}
+export declare class UpdateFamilyDto {
+    id?: string;
+    primaryContact?: UpdateFamilyContactDto;
+    secondaryContact?: UpdateFamilyContactDto;
+    students?: UpdateFamilyStudentRelationDto[];
+    notes?: string;
+}

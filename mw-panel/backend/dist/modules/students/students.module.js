@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const students_controller_1 = require("./students.controller");
 const students_service_1 = require("./students.service");
+const enrollment_number_service_1 = require("./services/enrollment-number.service");
 const student_entity_1 = require("./entities/student.entity");
 const educational_level_entity_1 = require("./entities/educational-level.entity");
 const cycle_entity_1 = require("./entities/cycle.entity");
@@ -39,8 +40,8 @@ exports.StudentsModule = StudentsModule = __decorate([
             ]),
         ],
         controllers: [students_controller_1.StudentsController],
-        providers: [students_service_1.StudentsService],
-        exports: [students_service_1.StudentsService],
+        providers: [students_service_1.StudentsService, enrollment_number_service_1.EnrollmentNumberService],
+        exports: [students_service_1.StudentsService, enrollment_number_service_1.EnrollmentNumberService],
     })
 ], StudentsModule);
 //# sourceMappingURL=students.module.js.map

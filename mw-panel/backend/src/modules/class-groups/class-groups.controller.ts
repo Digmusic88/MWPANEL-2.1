@@ -73,6 +73,14 @@ export class ClassGroupsController {
     return this.classGroupsService.getAvailableTeachers();
   }
 
+  @Get('available-courses')
+  @ApiOperation({ summary: 'Obtener cursos disponibles' })
+  @ApiResponse({ status: 200, description: 'Lista de cursos disponibles' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async getAvailableCourses() {
+    return this.classGroupsService.getAvailableCourses();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un grupo de clase por ID' })
   @ApiResponse({ status: 200, description: 'Grupo de clase encontrado' })
