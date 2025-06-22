@@ -29,10 +29,12 @@ import {
   DeleteOutlined,
   ClockCircleOutlined,
   EyeOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import apiClient from '@services/apiClient'
+import BulkImportModal from '@components/BulkImportModal'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -99,6 +101,7 @@ const EnrollmentPage: React.FC = () => {
   const [form] = Form.useForm<EnrollmentFormData>()
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showManualEnrollment, setShowManualEnrollment] = useState(false)
   const navigate = useNavigate()
 
   // Academic data
@@ -120,6 +123,9 @@ const EnrollmentPage: React.FC = () => {
   const [showDraftModal, setShowDraftModal] = useState(false)
   const [draftData, setDraftData] = useState<any>(null)
   const DRAFT_KEY = 'enrollment-draft'
+
+  // Bulk import
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false)
 
   // Fetch initial data
   const fetchInitialData = async () => {
@@ -305,10 +311,17 @@ const EnrollmentPage: React.FC = () => {
     try {
       // Validate current step fields
       if (currentStep === 0) {
-        await form.validateFields([
+        const fieldsToValidate = [
           'studentFirstName', 'studentLastName', 'studentEmail', 'studentPassword',
-          'studentBirthDate', 'enrollmentNumber', 'educationalLevelId'
-        ])
+          'studentBirthDate', 'educationalLevelId'
+        ]
+        
+        // Only validate enrollment number if manual mode is enabled
+        if (showManualEnrollment) {
+          fieldsToValidate.push('enrollmentNumber')
+        }
+        
+        await form.validateFields(fieldsToValidate)
       } else if (currentStep === 1) {
         const createNewFamily = form.getFieldValue('createNewFamily')
         if (createNewFamily) {
@@ -369,7 +382,7 @@ const EnrollmentPage: React.FC = () => {
           birthDate: dayjs(values.studentBirthDate).format('YYYY-MM-DD'),
           documentNumber: values.studentDocumentNumber,
           phone: values.studentPhone,
-          enrollmentNumber: values.enrollmentNumber,
+          ...(values.enrollmentNumber && { enrollmentNumber: values.enrollmentNumber }),
           educationalLevelId: values.educationalLevelId,
           courseId: values.courseId,
           classGroupIds: values.classGroupIds || []
@@ -446,9 +459,18 @@ const EnrollmentPage: React.FC = () => {
           </Text>
         </div>
         
-        {/* Draft Management */}
+        {/* Actions */}
         <div className="flex flex-col items-end gap-2">
           <div className="flex gap-2">
+            <Button 
+              icon={<CloudUploadOutlined />} 
+              onClick={() => setShowBulkImportModal(true)}
+              type="default"
+              size="large"
+            >
+              Importación Masiva
+            </Button>
+            
             <Button 
               icon={<SaveOutlined />} 
               onClick={saveDraft}
@@ -610,17 +632,47 @@ const EnrollmentPage: React.FC = () => {
 
               <div>
                 <Title level={4}>Información Académica</Title>
+                
+                {/* Opción para matriculación manual */}
+                <div style={{ marginBottom: 16 }}>
+                  <Checkbox 
+                    checked={showManualEnrollment}
+                    onChange={(e) => {
+                      setShowManualEnrollment(e.target.checked)
+                      if (!e.target.checked) {
+                        form.setFieldValue('enrollmentNumber', undefined)
+                      }
+                    }}
+                  >
+                    <Text type="secondary">
+                      Asignar número de matrícula manualmente 
+                      <Text type="secondary" style={{ fontSize: '12px', marginLeft: 4 }}>
+                        (por defecto se genera automáticamente)
+                      </Text>
+                    </Text>
+                  </Checkbox>
+                </div>
+
                 <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="enrollmentNumber"
-                      label="Número de Matrícula"
-                      rules={[{ required: true, message: 'El número de matrícula es requerido' }]}
-                    >
-                      <Input placeholder="MT-2024-001" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
+                  {showManualEnrollment && (
+                    <Col span={12}>
+                      <Form.Item
+                        name="enrollmentNumber"
+                        label="Número de Matrícula"
+                        rules={[
+                          { required: showManualEnrollment, message: 'El número de matrícula es requerido' },
+                          { 
+                            pattern: /^(MW|MT)-\d{4}-\d{4}$|^(MW|MT)\d+$/,
+                            message: 'Formato: MW-2025-0001 o MW123456' 
+                          }
+                        ]}
+                        extra="Formato recomendado: MW-2025-0001"
+                      >
+                        <Input placeholder="MW-2025-0001" />
+                      </Form.Item>
+                    </Col>
+                  )}
+                  <Col span={showManualEnrollment ? 12 : 24}>
                     <Form.Item
                       name="educationalLevelId"
                       label="Nivel Educativo"
@@ -1195,6 +1247,21 @@ const EnrollmentPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        visible={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        onSuccess={(result) => {
+          console.log('Bulk import successful:', result);
+          message.success(`Importación completada: ${result.successfulImports} estudiantes inscritos`);
+          setShowBulkImportModal(false);
+          // Optionally refresh the page or navigate to students list
+          if (result.successfulImports > 0) {
+            navigate('/admin/students');
+          }
+        }}
+      />
     </div>
   )
 }

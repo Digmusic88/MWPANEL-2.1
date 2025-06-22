@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StudentsController } from './students.controller';
 import { StudentsService } from './students.service';
+import { EnrollmentNumberService } from './services/enrollment-number.service';
 import { Student } from './entities/student.entity';
 import { EducationalLevel } from './entities/educational-level.entity';
 import { Cycle } from './entities/cycle.entity';
@@ -27,7 +28,7 @@ import { UserProfile } from '../users/entities/user-profile.entity';
     ]),
   ],
   controllers: [StudentsController],
-  providers: [StudentsService],
-  exports: [StudentsService],
+  providers: [StudentsService, EnrollmentNumberService],
+  exports: [StudentsService, EnrollmentNumberService],
 })
 export class StudentsModule {}

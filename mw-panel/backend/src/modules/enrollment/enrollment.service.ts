@@ -7,6 +7,7 @@ import { Student } from '../students/entities/student.entity';
 import { EducationalLevel } from '../students/entities/educational-level.entity';
 import { Course } from '../students/entities/course.entity';
 import { Family, FamilyStudent } from '../users/entities/family.entity';
+import { EnrollmentNumberService } from '../students/services/enrollment-number.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -24,6 +25,7 @@ export class EnrollmentService {
     @InjectRepository(FamilyStudent)
     private familyStudentRepository: Repository<FamilyStudent>,
     private dataSource: DataSource,
+    private enrollmentNumberService: EnrollmentNumberService,
   ) {}
 
   async processEnrollment(createEnrollmentDto: CreateEnrollmentDto) {
@@ -124,13 +126,28 @@ export class EnrollmentService {
   }
 
   private async createStudentRecord(studentData: any, user: User, queryRunner: any): Promise<Student> {
-    // Check if enrollment number already exists
-    const existingStudent = await queryRunner.manager.findOne(Student, {
-      where: { enrollmentNumber: studentData.enrollmentNumber }
-    });
+    // Generate enrollment number automatically or use provided one
+    let enrollmentNumber: string;
     
-    if (existingStudent) {
-      throw new ConflictException(`El número de matrícula ${studentData.enrollmentNumber} ya está registrado`);
+    if (studentData.enrollmentNumber && studentData.enrollmentNumber.trim() !== '') {
+      // Validate format if provided manually
+      if (!this.enrollmentNumberService.validateEnrollmentFormat(studentData.enrollmentNumber)) {
+        throw new BadRequestException(`Formato de número de matrícula inválido: ${studentData.enrollmentNumber}`);
+      }
+      
+      // Check if manual enrollment number already exists
+      const existingStudent = await queryRunner.manager.findOne(Student, {
+        where: { enrollmentNumber: studentData.enrollmentNumber }
+      });
+      
+      if (existingStudent) {
+        throw new ConflictException(`El número de matrícula ${studentData.enrollmentNumber} ya está registrado`);
+      }
+      
+      enrollmentNumber = studentData.enrollmentNumber;
+    } else {
+      // Generate automatically
+      enrollmentNumber = await this.enrollmentNumberService.generateUniqueEnrollmentNumber();
     }
 
     // Find educational level entity if provided
@@ -151,7 +168,7 @@ export class EnrollmentService {
 
     const student = queryRunner.manager.create(Student, {
       user,
-      enrollmentNumber: studentData.enrollmentNumber,
+      enrollmentNumber,
       birthDate: studentData.birthDate ? new Date(studentData.birthDate) : new Date(),
       educationalLevel,
       course,

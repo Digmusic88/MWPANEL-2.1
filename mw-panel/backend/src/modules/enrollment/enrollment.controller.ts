@@ -4,10 +4,17 @@ import {
   Body, 
   UseGuards,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  Get,
+  Res
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes } from '@nestjs/swagger';
+import { Response } from 'express';
 import { EnrollmentService } from './enrollment.service';
+import { BulkImportService } from './services/bulk-import.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -18,7 +25,10 @@ import { UserRole } from '../users/entities/user.entity';
 @Controller('enrollment')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EnrollmentController {
-  constructor(private readonly enrollmentService: EnrollmentService) {}
+  constructor(
+    private readonly enrollmentService: EnrollmentService,
+    private readonly bulkImportService: BulkImportService,
+  ) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -54,7 +64,7 @@ export class EnrollmentController {
         birthDate: '2010-05-15',
         documentNumber: '12345678A',
         phone: '666123456',
-        enrollmentNumber: 'MW' + Date.now(),
+        // enrollmentNumber will be auto-generated
         educationalLevelId: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         courseId: null,
         classGroupIds: []
@@ -91,6 +101,60 @@ export class EnrollmentController {
       return await this.enrollmentService.processEnrollment(testData as any);
     } catch (error) {
       console.error('Test enrollment error:', error);
+      throw error;
+    }
+  }
+
+  @Post('bulk-import')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Importación masiva de estudiantes y familias desde archivo Excel/CSV' })
+  @ApiResponse({ status: 200, description: 'Archivo procesado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Error en el archivo o datos inválidos' })
+  async bulkImport(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new Error('No se proporcionó ningún archivo');
+    }
+
+    console.log('Processing bulk import file:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+
+    try {
+      const result = await this.bulkImportService.processBulkImport(file);
+      console.log('Bulk import completed:', {
+        totalRows: result.totalRows,
+        successful: result.successfulImports,
+        failed: result.failedImports,
+        errorsCount: result.errors.length
+      });
+      return result;
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      throw error;
+    }
+  }
+
+  @Get('template')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Descargar plantilla Excel para importación masiva' })
+  @ApiResponse({ status: 200, description: 'Plantilla Excel generada exitosamente' })
+  async downloadTemplate(@Res() res: Response) {
+    try {
+      const template = await this.bulkImportService.generateTemplate();
+      
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="plantilla_inscripcion_masiva.xlsx"',
+        'Content-Length': template.length.toString(),
+      });
+
+      res.send(template);
+    } catch (error) {
+      console.error('Template generation error:', error);
       throw error;
     }
   }
