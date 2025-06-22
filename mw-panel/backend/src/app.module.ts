@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
 import { FamiliesModule } from './modules/families/families.module';
+import { ClassGroupsModule } from './modules/class-groups/class-groups.module';
 import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { EvaluationsModule } from './modules/evaluations/evaluations.module';
 import { CompetenciesModule } from './modules/competencies/competencies.module';
@@ -49,6 +50,7 @@ import appConfig from './config/app.config';
     StudentsModule,
     TeachersModule,
     FamiliesModule,
+    ClassGroupsModule,
     EnrollmentModule,
     EvaluationsModule,
     CompetenciesModule,

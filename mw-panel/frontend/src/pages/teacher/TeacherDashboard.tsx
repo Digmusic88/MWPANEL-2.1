@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Typography, Space, List, Avatar, Progress, Button } from 'antd'
+import { Card, Row, Col, Statistic, Typography, Space, List, Avatar, Progress, Button, Spin, message, Alert } from 'antd'
 import {
   TeamOutlined,
   FileTextOutlined,
@@ -9,26 +9,141 @@ import {
   PlusOutlined,
   EyeOutlined,
 } from '@ant-design/icons'
+import apiClient from '@services/apiClient'
 
 const { Title, Text } = Typography
 
+interface TeacherProfile {
+  id: string
+  employeeNumber: string
+  specialties: string[]
+  user: {
+    email: string
+    profile: {
+      firstName: string
+      lastName: string
+      department: string
+      position: string
+      education: string
+    }
+  }
+  subjects?: Array<{
+    id: string
+    name: string
+  }>
+  tutoredClasses?: Array<{
+    id: string
+    name: string
+  }>
+}
+
 const TeacherDashboardHome: React.FC = () => {
-  // Mock data - replace with real API calls
+  const [teacherProfile, setTeacherProfile] = useState<TeacherProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Mock stats for now - could be calculated from real data
+  const [teacherClasses, setTeacherClasses] = useState<any[]>([])
+
   const stats = {
-    totalClasses: 6,
-    totalStudents: 145,
+    totalClasses: teacherClasses.length,
+    totalStudents: teacherClasses.reduce((total, classGroup) => total + (classGroup.students?.length || 0), 0),
     pendingEvaluations: 23,
     completedEvaluations: 87,
   }
 
-  const classes = [
-    { id: 1, name: '3º A Primaria', subject: 'Matemáticas', students: 24 },
-    { id: 2, name: '3º B Primaria', subject: 'Matemáticas', students: 23 },
-    { id: 3, name: '4º A Primaria', subject: 'Matemáticas', students: 25 },
-    { id: 4, name: '4º B Primaria', subject: 'Matemáticas', students: 24 },
-    { id: 5, name: '5º A Primaria', subject: 'Matemáticas', students: 26 },
-    { id: 6, name: '5º B Primaria', subject: 'Matemáticas', students: 23 },
-  ]
+  // Fetch teacher profile
+  const fetchTeacherProfile = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Get current user info first to find teacher ID
+      const userResponse = await apiClient.get('/auth/me')
+      const currentUser = userResponse.data
+      
+      // If not a teacher, show error
+      if (currentUser.role !== 'teacher') {
+        setError('Acceso denegado: Solo profesores pueden acceder a este panel')
+        return
+      }
+
+      // Find teacher by user ID
+      const teachersResponse = await apiClient.get('/teachers')
+      const teachers = teachersResponse.data
+      
+      const currentTeacher = teachers.find((teacher: any) => teacher.user.id === currentUser.id)
+      
+      if (currentTeacher) {
+        setTeacherProfile(currentTeacher)
+      } else {
+        setError('No se encontró el perfil de profesor para este usuario')
+      }
+    } catch (error: any) {
+      console.error('Error fetching teacher profile:', error)
+      const errorMessage = error.response?.data?.message || 'Error al cargar el perfil del profesor'
+      setError(errorMessage)
+      message.error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch teacher's class groups
+  const fetchTeacherClasses = async (teacherId: string) => {
+    try {
+      const response = await apiClient.get(`/class-groups?tutorId=${teacherId}`)
+      setTeacherClasses(response.data)
+    } catch (error: any) {
+      console.error('Error fetching teacher classes:', error)
+      // Don't show error message for this, as it's not critical
+    }
+  }
+
+  useEffect(() => {
+    fetchTeacherProfile()
+  }, [])
+
+  useEffect(() => {
+    if (teacherProfile?.id) {
+      fetchTeacherClasses(teacherProfile.id)
+    }
+  }, [teacherProfile])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip="Cargando dashboard del profesor..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Alert
+          message="Error al cargar el dashboard"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" danger onClick={fetchTeacherProfile}>
+              Reintentar
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+
+  // Use real teacher classes or show empty state
+  const classes = teacherClasses.map(classGroup => ({
+    id: classGroup.id,
+    name: classGroup.name,
+    course: classGroup.courses?.map((c: any) => c.name).join(', ') || 'Sin cursos',
+    students: classGroup.students?.length || 0,
+    academicYear: classGroup.academicYear?.name || 'Sin año',
+  }))
 
   const recentEvaluations = [
     { id: 1, student: 'Ana García López', class: '3º A', subject: 'Matemáticas', date: '2024-01-15', status: 'completed' },
@@ -44,9 +159,30 @@ const TeacherDashboardHome: React.FC = () => {
         <Title level={2} className="!mb-2">
           Panel del Profesor
         </Title>
-        <Text type="secondary">
-          Gestiona tus clases y evaluaciones
-        </Text>
+        {teacherProfile && (
+          <div className="space-y-2">
+            <Text type="secondary" className="block">
+              Bienvenido/a, {teacherProfile.user.profile.firstName} {teacherProfile.user.profile.lastName}
+            </Text>
+            <Space wrap>
+              <Text type="secondary">{teacherProfile.user.profile.department}</Text>
+              <Text type="secondary">•</Text>
+              <Text type="secondary">{teacherProfile.user.profile.position}</Text>
+              <Text type="secondary">•</Text>
+              <Text type="secondary">Empleado: {teacherProfile.employeeNumber}</Text>
+            </Space>
+            <div>
+              {teacherProfile.specialties.map(specialty => (
+                <span 
+                  key={specialty}
+                  className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 mt-1"
+                >
+                  {specialty}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -107,6 +243,16 @@ const TeacherDashboardHome: React.FC = () => {
           >
             <List
               dataSource={classes}
+              locale={{
+                emptyText: (
+                  <div className="text-center py-8">
+                    <BookOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+                    <div className="mt-4">
+                      <Text type="secondary">No tienes clases asignadas como tutor</Text>
+                    </div>
+                  </div>
+                )
+              }}
               renderItem={(item) => (
                 <List.Item
                   actions={[
@@ -124,8 +270,9 @@ const TeacherDashboardHome: React.FC = () => {
                     title={item.name}
                     description={
                       <Space direction="vertical" size="small">
-                        <Text type="secondary">{item.subject}</Text>
+                        <Text type="secondary">{item.course}</Text>
                         <Text className="text-sm">{item.students} estudiantes</Text>
+                        <Text className="text-xs text-gray-400">{item.academicYear}</Text>
                       </Space>
                     }
                   />

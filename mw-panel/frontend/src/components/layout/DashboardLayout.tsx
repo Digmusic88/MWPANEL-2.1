@@ -78,6 +78,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Académico',
             children: [
               {
+                key: 'class-groups',
+                label: 'Grupos de Clase',
+                onClick: () => navigate('/admin/class-groups'),
+              },
+              {
                 key: 'levels',
                 label: 'Niveles Educativos',
                 onClick: () => navigate('/admin/levels'),

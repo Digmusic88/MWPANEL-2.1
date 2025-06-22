@@ -27,8 +27,13 @@ export class ClassGroup {
   @ManyToOne(() => AcademicYear)
   academicYear: AcademicYear;
 
-  @ManyToOne(() => Course)
-  course: Course;
+  @ManyToMany(() => Course)
+  @JoinTable({
+    name: 'class_group_courses',
+    joinColumn: { name: 'classGroupId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'courseId', referencedColumnName: 'id' },
+  })
+  courses: Course[];
 
   @ManyToOne(() => Teacher)
   tutor: Teacher;
