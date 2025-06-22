@@ -112,7 +112,7 @@ export class EnrollmentController {
   @ApiOperation({ summary: 'Importación masiva de estudiantes y familias desde archivo Excel/CSV' })
   @ApiResponse({ status: 200, description: 'Archivo procesado exitosamente' })
   @ApiResponse({ status: 400, description: 'Error en el archivo o datos inválidos' })
-  async bulkImport(@UploadedFile() file: Express.Multer.File) {
+  async bulkImport(@UploadedFile() file: any) {
     if (!file) {
       throw new Error('No se proporcionó ningún archivo');
     }

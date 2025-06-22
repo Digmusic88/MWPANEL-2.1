@@ -27,7 +27,7 @@ export class BulkImportService {
     private enrollmentService: EnrollmentService,
   ) {}
 
-  async processBulkImport(file: Express.Multer.File): Promise<BulkImportResult> {
+  async processBulkImport(file: any): Promise<BulkImportResult> {
     const result: BulkImportResult = {
       totalRows: 0,
       successfulImports: 0,
@@ -92,7 +92,7 @@ export class BulkImportService {
     }
   }
 
-  private async parseFile(file: Express.Multer.File): Promise<any[]> {
+  private async parseFile(file: any): Promise<any[]> {
     const workbook = XLSX.read(file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
