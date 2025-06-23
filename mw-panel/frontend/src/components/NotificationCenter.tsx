@@ -193,9 +193,9 @@ const NotificationCenter: React.FC = () => {
   };
 
   const notificationList = (
-    <div style={{ width: 400, maxHeight: 500, overflow: 'auto' }}>
+    <div style={{ width: 400, maxHeight: 500, overflow: 'auto', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f1f5f9', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Text strong>Notificaciones</Text>
           {unreadCount > 0 && (
@@ -214,7 +214,7 @@ const NotificationCenter: React.FC = () => {
       {/* Content */}
       <Spin spinning={loading}>
         {notifications.length === 0 ? (
-          <div style={{ padding: '20px' }}>
+          <div style={{ padding: '20px', backgroundColor: '#f8fafc' }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description="No hay notificaciones"
@@ -230,7 +230,7 @@ const NotificationCenter: React.FC = () => {
                 style={{
                   padding: '12px 16px',
                   cursor: 'pointer',
-                  backgroundColor: notification.status === 'unread' ? '#f6ffed' : 'transparent',
+                  backgroundColor: notification.status === 'unread' ? '#f0f9ff' : '#f9fafb',
                   borderLeft: notification.status === 'unread' ? '3px solid #52c41a' : 'none',
                 }}
                 onClick={() => handleNotificationClick(notification)}
@@ -341,6 +341,7 @@ const NotificationCenter: React.FC = () => {
       placement="bottomRight"
       open={dropdownVisible}
       onOpenChange={setDropdownVisible}
+      overlayStyle={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
     >
       <Badge count={unreadCount} size="small">
         <Button
