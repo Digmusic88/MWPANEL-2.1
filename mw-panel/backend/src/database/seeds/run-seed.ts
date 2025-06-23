@@ -18,10 +18,10 @@ const configService = new ConfigService();
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'postgres',
   port: parseInt(process.env.DB_PORT || '5432', 10),
   username: process.env.DB_USER || 'mwpanel',
-  password: process.env.DB_PASSWORD || 'mwpanel123',
+  password: process.env.DB_PASSWORD || 'changeme-strong-password',
   database: process.env.DB_NAME || 'mwpanel',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: true,

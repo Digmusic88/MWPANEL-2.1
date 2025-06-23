@@ -289,7 +289,7 @@ const LoginPage: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <Text className="text-sm text-slate-700 font-semibold block mb-3">
-                🔑 Credenciales de demostración:
+                🔑 Credenciales reales de la base de datos:
               </Text>
               <div className="grid grid-cols-1 gap-2 text-xs text-slate-600">
                 <motion.div 
@@ -304,23 +304,61 @@ const LoginPage: React.FC = () => {
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍🏫</span>
-                  <span><strong>Profesor:</strong> profesor@mwpanel.com / Profesor123!</span>
+                  <span><strong>Prof. María:</strong> profesor@mwpanel.com / Profesor123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🏫</span>
+                  <span><strong>Prof. Ana:</strong> ana.lopez@mwpanel.com / Profesor123!</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍🎓</span>
-                  <span><strong>Estudiante:</strong> estudiante@mwpanel.com / Estudiante123!</span>
+                  <span><strong>Est. Ana:</strong> estudiante@mwpanel.com / Estudiante123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🎓</span>
+                  <span><strong>Est. Juan:</strong> juan.perez@mwpanel.com / Estudiante123!</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍👩‍👧‍👦</span>
-                  <span><strong>Familia:</strong> familia@mwpanel.com / Familia123!</span>
+                  <span><strong>Fam. Carmen:</strong> familia@mwpanel.com / Familia123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍👩‍👧‍👦</span>
+                  <span><strong>Fam. Miguel:</strong> padre.garcia@mwpanel.com / Familia123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors bg-green-50 border border-green-200"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🎓</span>
+                  <span><strong>🆕 Lucía M.:</strong> lucia.morales@mwpanel.com / Estudiante123@</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors bg-green-50 border border-green-200"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍👩‍👧‍👦</span>
+                  <span><strong>🆕 Roberto M.:</strong> roberto.morales@mwpanel.com / Familia123@</span>
                 </motion.div>
               </div>
+              <Text className="text-xs text-slate-500 mt-3 italic">
+                ✨ Total: 14 cuentas reales en BD (2 Admin, 3 Profesores, 5 Estudiantes, 4 Familias)
+              </Text>
             </motion.div>
           </FadeInUp>
         </motion.div>
