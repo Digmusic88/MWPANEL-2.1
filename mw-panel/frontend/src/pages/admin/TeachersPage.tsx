@@ -560,6 +560,22 @@ const TeachersPage = () => {
             </Form.Item>
           )}
 
+          {editingTeacher && (
+            <Form.Item
+              name="newPassword"
+              label="Nueva Contraseña (opcional)"
+              rules={[
+                { min: 8, message: 'Mínimo 8 caracteres' },
+                {
+                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+                  message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
+                }
+              ]}
+            >
+              <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />
+            </Form.Item>
+          )}
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item

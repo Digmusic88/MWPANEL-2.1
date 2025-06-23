@@ -425,7 +425,7 @@ export class FamiliesService {
   }
 
   private async updateFamilyUser(userId: string, contactDto: UpdateFamilyContactDto, queryRunner: any): Promise<void> {
-    const { email, password, firstName, lastName, dateOfBirth, documentNumber, phone, address, occupation } = contactDto;
+    const { email, password, newPassword, firstName, lastName, dateOfBirth, documentNumber, phone, address, occupation } = contactDto;
 
     const user = await this.usersRepository.findOne({
       where: { id: userId },
@@ -448,10 +448,15 @@ export class FamiliesService {
       userUpdated = true;
     }
 
-    // Update password if provided
+    // Update password if provided (legacy field for backward compatibility)
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user.passwordHash = hashedPassword;
+      user.password = password;
+      userUpdated = true;
+    }
+
+    // Handle password change if newPassword is provided (preferred method)
+    if (newPassword) {
+      user.password = newPassword;
       userUpdated = true;
     }
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsEmail, IsOptional, IsEnum, IsBoolean, IsString, MinLength, Matches } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class UpdateUserDto {
@@ -30,4 +30,22 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean({ message: 'El estado debe ser un valor booleano' })
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Nueva contraseña para el usuario (solo si se quiere cambiar)',
+    example: 'NewPassword123!',
+    required: false,
+    minLength: 8,
+  })
+  @IsOptional()
+  @IsString({ message: 'La nueva contraseña debe ser una cadena de texto' })
+  @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    {
+      message:
+        'La nueva contraseña debe contener al menos una letra minúscula, una mayúscula, un número y un carácter especial',
+    },
+  )
+  newPassword?: string;
 }

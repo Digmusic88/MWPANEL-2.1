@@ -86,7 +86,7 @@ export class StudentsService {
   async update(id: string, updateStudentDto: any): Promise<Student> {
     const student = await this.findOne(id);
     
-    const { email, firstName, lastName, phone, dni, enrollmentNumber } = updateStudentDto;
+    const { email, firstName, lastName, phone, dni, enrollmentNumber, newPassword } = updateStudentDto;
 
     // Update user email if provided
     if (email && email !== student.user.email) {
@@ -95,6 +95,12 @@ export class StudentsService {
         throw new ConflictException('El email ya está en uso');
       }
       student.user.email = email;
+      await this.usersRepository.save(student.user);
+    }
+
+    // Handle password change if newPassword is provided
+    if (newPassword) {
+      student.user.password = newPassword;
       await this.usersRepository.save(student.user);
     }
 

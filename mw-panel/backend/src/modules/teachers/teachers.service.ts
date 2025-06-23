@@ -129,6 +129,7 @@ export class TeachersService {
       hireDate,
       department,
       position,
+      newPassword,
     } = updateTeacherDto;
 
     // Update teacher entity
@@ -155,6 +156,11 @@ export class TeachersService {
 
     if (isActive !== undefined) {
       teacher.user.isActive = isActive;
+    }
+
+    // Handle password change if newPassword is provided
+    if (newPassword) {
+      teacher.user.password = newPassword;
     }
 
     // Update profile entity

@@ -129,8 +129,16 @@ export class UsersService {
       }
     }
 
+    // Handle password change if newPassword is provided
+    const { newPassword, ...restUpdateData } = updateUserDto;
+    
     // Update user fields
-    Object.assign(user, updateUserDto);
+    Object.assign(user, restUpdateData);
+    
+    // Set new password if provided (will be automatically hashed by @BeforeUpdate hook)
+    if (newPassword) {
+      user.password = newPassword;
+    }
     
     return this.usersRepository.save(user);
   }

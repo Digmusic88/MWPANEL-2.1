@@ -1,4 +1,4 @@
-import { IsString, IsArray, IsOptional, IsDateString, ValidateNested, IsEnum } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsDateString, ValidateNested, IsEnum, MinLength, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { FamilyRelationship } from '../../users/entities/family.entity';
@@ -13,6 +13,24 @@ export class UpdateFamilyContactDto {
   @IsString()
   @IsOptional()
   password?: string;
+
+  @ApiProperty({
+    description: 'Nueva contraseña para el contacto familiar (solo si se quiere cambiar)',
+    example: 'NewPassword123!',
+    required: false,
+    minLength: 8,
+  })
+  @IsOptional()
+  @IsString({ message: 'La nueva contraseña debe ser una cadena de texto' })
+  @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    {
+      message:
+        'La nueva contraseña debe contener al menos una letra minúscula, una mayúscula, un número y un carácter especial',
+    },
+  )
+  newPassword?: string;
 
   @ApiProperty({ example: 'Juan', required: false })
   @IsString()

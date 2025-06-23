@@ -370,4 +370,147 @@ export class SubjectsService {
       },
     });
   }
+
+  // === METHODS FOR EVALUATIONS INTEGRATION ===
+
+  /**
+   * Get subjects available for a specific student based on their class group
+   */
+  async findSubjectsByStudent(studentId: string): Promise<Subject[]> {
+    // First, find the student's class groups
+    const classGroups = await this.classGroupRepository.find({
+      where: { students: { id: studentId } },
+      relations: ['course']
+    });
+
+    if (classGroups.length === 0) {
+      return [];
+    }
+
+    // Get subjects from assignments for those class groups
+    const assignments = await this.assignmentRepository.find({
+      where: { classGroup: { id: In(classGroups.map(group => group.id)) } },
+      relations: ['subject', 'subject.course']
+    });
+
+    // Extract unique subjects
+    const subjects = Array.from(
+      new Map(assignments.map(assignment => [assignment.subject.id, assignment.subject])).values()
+    );
+
+    return subjects;
+  }
+
+  /**
+   * Get subjects that a teacher teaches to a specific class group
+   */
+  async findSubjectsByTeacherAndGroup(teacherId: string, classGroupId: string): Promise<Subject[]> {
+    const assignments = await this.assignmentRepository.find({
+      where: {
+        teacher: { id: teacherId },
+        classGroup: { id: classGroupId }
+      },
+      relations: ['subject', 'subject.course']
+    });
+
+    return assignments.map(assignment => assignment.subject);
+  }
+
+  /**
+   * Get subjects that a teacher can evaluate (all subjects they teach)
+   */
+  async findSubjectsByTeacher(teacherId: string): Promise<Subject[]> {
+    const assignments = await this.assignmentRepository.find({
+      where: { teacher: { id: teacherId } },
+      relations: ['subject', 'subject.course', 'classGroup']
+    });
+
+    // Extract unique subjects
+    const subjects = Array.from(
+      new Map(assignments.map(assignment => [assignment.subject.id, assignment.subject])).values()
+    );
+
+    return subjects;
+  }
+
+  /**
+   * Get detailed assignment information for evaluations
+   */
+  async findAssignmentDetails(teacherId: string, subjectId: string, classGroupId: string): Promise<SubjectAssignment | null> {
+    return this.assignmentRepository.findOne({
+      where: {
+        teacher: { id: teacherId },
+        subject: { id: subjectId },
+        classGroup: { id: classGroupId }
+      },
+      relations: [
+        'teacher',
+        'teacher.user',
+        'teacher.user.profile',
+        'subject',
+        'subject.course',
+        'classGroup',
+        'classGroup.course',
+        'academicYear'
+      ]
+    });
+  }
+
+  /**
+   * Get statistics for subjects system
+   */
+  async getSubjectStatistics() {
+    const [
+      totalSubjects,
+      totalAssignments,
+      subjectsWithoutAssignments,
+      teachersWithAssignments
+    ] = await Promise.all([
+      this.subjectRepository.count(),
+      this.assignmentRepository.count(),
+      this.subjectRepository
+        .createQueryBuilder('subject')
+        .leftJoin('subject_assignments', 'assignment', 'assignment.subjectId = subject.id')
+        .where('assignment.id IS NULL')
+        .getCount(),
+      this.assignmentRepository
+        .createQueryBuilder('assignment')
+        .select('COUNT(DISTINCT assignment.teacherId)', 'count')
+        .getRawOne()
+    ]);
+
+    return {
+      totalSubjects,
+      totalAssignments,
+      subjectsWithoutAssignments,
+      teachersWithAssignments: parseInt(teachersWithAssignments?.count || '0'),
+      assignmentsPerSubject: totalSubjects > 0 ? (totalAssignments / totalSubjects).toFixed(2) : '0'
+    };
+  }
+
+  /**
+   * Check if a teacher can evaluate a specific subject for a specific student
+   */
+  async canTeacherEvaluateSubject(teacherId: string, subjectId: string, studentId: string): Promise<boolean> {
+    // Get student's class groups
+    const studentGroups = await this.classGroupRepository.find({
+      where: { students: { id: studentId } },
+      select: ['id']
+    });
+
+    if (studentGroups.length === 0) {
+      return false;
+    }
+
+    // Check if teacher has assignment for this subject in any of student's groups
+    const assignment = await this.assignmentRepository.findOne({
+      where: {
+        teacher: { id: teacherId },
+        subject: { id: subjectId },
+        classGroup: { id: In(studentGroups.map(group => group.id)) }
+      }
+    });
+
+    return !!assignment;
+  }
 }

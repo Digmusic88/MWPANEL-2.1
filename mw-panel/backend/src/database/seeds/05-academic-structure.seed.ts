@@ -80,6 +80,31 @@ export const seedAcademicStructure = async (dataSource: DataSource): Promise<voi
         });
         await courseRepository.save(course);
         console.log(`✓ Curso Infantil creado: ${courseName}`);
+
+        // Create subjects for Infantil courses
+        const subjectsInfantil = [
+          { name: 'Crecimiento en Armonía', code: 'CARM', weeklyHours: 8 },
+          { name: 'Descubrimiento y Exploración del Entorno', code: 'DENT', weeklyHours: 6 },
+          { name: 'Comunicación y Representación', code: 'CREP', weeklyHours: 8 },
+          { name: 'Iniciación a la Lengua Extranjera (Inglés)', code: 'ING', weeklyHours: 2 },
+          { name: 'Religión/Valores', code: 'REL', weeklyHours: 1 },
+        ];
+
+        for (const subjectData of subjectsInfantil) {
+          const existingSubject = await subjectRepository.findOne({
+            where: { code: `${subjectData.code}_${courseName}`, course: { id: course.id } },
+          });
+
+          if (!existingSubject) {
+            const subject = subjectRepository.create({
+              name: subjectData.name,
+              code: `${subjectData.code}_${courseName}`,
+              weeklyHours: subjectData.weeklyHours,
+              course,
+            });
+            await subjectRepository.save(subject);
+          }
+        }
       }
     }
   }

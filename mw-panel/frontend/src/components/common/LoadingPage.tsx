@@ -10,8 +10,15 @@ const LoadingPage: React.FC = () => {
       <div className="text-center">
         <Spin indicator={antIcon} />
         <div className="mt-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">MW Panel</h1>
-          <p className="text-gray-600">Cargando sistema de gestión escolar...</p>
+          <div className="w-16 h-16 mx-auto mb-4">
+            <img
+              src="/logo.svg"
+              alt="Mundo World School"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Mundo World School</h1>
+          <p className="text-gray-600">Cargando plataforma de gestión educativa...</p>
         </div>
       </div>
     </div>

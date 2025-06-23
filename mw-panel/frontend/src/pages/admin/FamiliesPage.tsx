@@ -466,6 +466,7 @@ const FamiliesPage: React.FC = () => {
       const primaryContactData = filterEmptyValues({
         email: values.primaryEmail,
         password: values.primaryPassword,
+        newPassword: values.primaryNewPassword,
         firstName: values.primaryFirstName,
         lastName: values.primaryLastName,
         dateOfBirth: values.primaryDateOfBirth ? dayjs(values.primaryDateOfBirth).format('YYYY-MM-DD') : undefined,
@@ -481,6 +482,7 @@ const FamiliesPage: React.FC = () => {
         secondaryContactData = filterEmptyValues({
           email: values.secondaryEmail,
           password: values.secondaryPassword,
+          newPassword: values.secondaryNewPassword,
           firstName: values.secondaryFirstName,
           lastName: values.secondaryLastName,
           dateOfBirth: values.secondaryDateOfBirth ? dayjs(values.secondaryDateOfBirth).format('YYYY-MM-DD') : undefined,
@@ -935,6 +937,22 @@ const FamiliesPage: React.FC = () => {
                   </Form.Item>
                 )}
 
+                {editingFamily && (
+                  <Form.Item
+                    name="primaryNewPassword"
+                    label="Nueva Contraseña (opcional)"
+                    rules={[
+                      { min: 8, message: 'Mínimo 8 caracteres' },
+                      {
+                        pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+                        message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
+                      }
+                    ]}
+                  >
+                    <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />
+                  </Form.Item>
+                )}
+
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
@@ -1074,6 +1092,22 @@ const FamiliesPage: React.FC = () => {
                         ] : []}
                       >
                         <Input.Password placeholder="Contraseña para el acceso" />
+                      </Form.Item>
+                    )}
+
+                    {editingFamily && (
+                      <Form.Item
+                        name="secondaryNewPassword"
+                        label="Nueva Contraseña (opcional)"
+                        rules={[
+                          { min: 8, message: 'Mínimo 8 caracteres' },
+                          {
+                            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+                            message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
+                          }
+                        ]}
+                      >
+                        <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />
                       </Form.Item>
                     )}
 

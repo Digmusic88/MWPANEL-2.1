@@ -10,6 +10,7 @@ import {
   BookOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
+import MessagesPage from '../communications/MessagesPage'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -502,6 +503,7 @@ const FamilyDashboard: React.FC = () => {
   return (
     <Routes>
       <Route index element={<FamilyDashboardHome />} />
+      <Route path="messages" element={<MessagesPage />} />
       {/* Add more family routes here */}
     </Routes>
   )
