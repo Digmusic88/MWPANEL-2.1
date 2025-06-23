@@ -35,25 +35,25 @@ const LoginPage: React.FC = () => {
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 800px 400px at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-              radial-gradient(ellipse 600px 300px at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-              radial-gradient(ellipse 400px 200px at 50% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)
+              radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+              radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+              radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)
             `
           }}
           animate={{
             background: [
-              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)`,
-              `radial-gradient(ellipse 800px 400px at 30% 10%, rgba(147, 51, 234, 0.2) 0%, transparent 50%),
-               radial-gradient(ellipse 600px 300px at 70% 90%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-               radial-gradient(ellipse 400px 200px at 20% 70%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)`,
-              `radial-gradient(ellipse 800px 400px at 60% 20%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 600px 300px at 40% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 400px 200px at 80% 40%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)`,
-              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)`
+              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 30% 10%, rgba(72, 158, 157, 0.22) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 70% 90%, rgba(197, 221, 195, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 20% 70%, rgba(72, 158, 157, 0.16) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 60% 20%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 40% 80%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 80% 40%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`
             ]
           }}
           transition={{
@@ -65,7 +65,8 @@ const LoginPage: React.FC = () => {
         
         {/* Aurora Particles */}
         <motion.div
-          className="absolute top-1/4 left-1/4 w-2 h-2 bg-purple-400 rounded-full opacity-40"
+          className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full opacity-40"
+          style={{ backgroundColor: '#489e9d' }}
           animate={{
             x: [0, 100, 0],
             y: [0, -50, 0],
@@ -79,7 +80,8 @@ const LoginPage: React.FC = () => {
           }}
         />
         <motion.div
-          className="absolute top-3/4 right-1/3 w-1 h-1 bg-blue-400 rounded-full opacity-50"
+          className="absolute top-3/4 right-1/3 w-1 h-1 rounded-full opacity-50"
+          style={{ backgroundColor: '#c5ddc3' }}
           animate={{
             x: [0, -80, 0],
             y: [0, 30, 0],
@@ -93,7 +95,8 @@ const LoginPage: React.FC = () => {
           }}
         />
         <motion.div
-          className="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-emerald-400 rounded-full opacity-60"
+          className="absolute top-1/2 right-1/4 w-1.5 h-1.5 rounded-full opacity-60"
+          style={{ backgroundColor: '#489e9d' }}
           animate={{
             x: [0, -60, 0],
             y: [0, -80, 0],
@@ -109,7 +112,10 @@ const LoginPage: React.FC = () => {
         
         {/* Animated Orbs */}
         <motion.div
-          className="absolute -top-4 -right-4 w-96 h-96 bg-gradient-to-br from-purple-300/20 to-blue-300/20 rounded-full blur-3xl"
+          className="absolute -top-4 -right-4 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background: `linear-gradient(135deg, rgba(72, 158, 157, 0.2) 0%, rgba(197, 221, 195, 0.15) 100%)`
+          }}
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360],
@@ -122,7 +128,10 @@ const LoginPage: React.FC = () => {
           }}
         />
         <motion.div
-          className="absolute -bottom-4 -left-4 w-96 h-96 bg-gradient-to-tr from-blue-300/20 to-emerald-300/20 rounded-full blur-3xl"
+          className="absolute -bottom-4 -left-4 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background: `linear-gradient(315deg, rgba(197, 221, 195, 0.2) 0%, rgba(72, 158, 157, 0.18) 100%)`
+          }}
           animate={{
             scale: [1.2, 1, 1.2],
             rotate: [360, 180, 0],
@@ -157,7 +166,12 @@ const LoginPage: React.FC = () => {
           </motion.div>
           
           <motion.h1 
-            className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2"
+            className="text-4xl font-bold bg-clip-text text-transparent mb-2"
+            style={{
+              background: `linear-gradient(90deg, #489e9d 0%, #2d5a3d 50%, #489e9d 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -263,7 +277,20 @@ const LoginPage: React.FC = () => {
                     type="primary"
                     htmlType="submit"
                     loading={loading}
-                    className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="w-full h-14 text-base font-semibold rounded-xl border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                    style={{
+                      background: '#c5ddc3',
+                      color: '#2d5a3d',
+                      borderColor: '#c5ddc3'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#489e9d';
+                      e.currentTarget.style.color = '#ffffff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#c5ddc3';
+                      e.currentTarget.style.color = '#2d5a3d';
+                    }}
                   >
                     {loading ? (
                       <motion.span

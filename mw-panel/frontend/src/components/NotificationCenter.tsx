@@ -121,16 +121,28 @@ const NotificationCenter: React.FC = () => {
     }
   };
 
-  const handleDismiss = async (notificationId: string) => {
+
+  const handleDeleteNotification = async (notificationId: string) => {
     try {
-      await apiClient.patch(`/communications/notifications/${notificationId}`, {
-        status: 'dismissed',
-      });
+      await apiClient.delete(`/communications/notifications/${notificationId}`);
+      message.success('Notificación eliminada');
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error('Error dismissing notification:', error);
-      message.error('Error al descartar la notificación');
+      console.error('Error deleting notification:', error);
+      message.error('Error al eliminar la notificación');
+    }
+  };
+
+  const handleDeleteAllNotifications = async () => {
+    try {
+      const response = await apiClient.delete('/communications/notifications/bulk/delete-all');
+      message.success(`${response.data.deletedCount} notificaciones eliminadas`);
+      fetchNotifications();
+      fetchUnreadCount();
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      message.error('Error al eliminar todas las notificaciones');
     }
   };
 
@@ -198,16 +210,29 @@ const NotificationCenter: React.FC = () => {
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f1f5f9', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Text strong>Notificaciones</Text>
-          {unreadCount > 0 && (
-            <Button
-              type="link"
-              size="small"
-              onClick={handleMarkAllAsRead}
-              style={{ padding: 0 }}
-            >
-              Marcar todas como leídas
-            </Button>
-          )}
+          <Space>
+            {unreadCount > 0 && (
+              <Button
+                type="link"
+                size="small"
+                onClick={handleMarkAllAsRead}
+                style={{ padding: 0 }}
+              >
+                Marcar todas como leídas
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button
+                type="link"
+                size="small"
+                onClick={handleDeleteAllNotifications}
+                style={{ padding: 0, color: '#ff4d4f' }}
+                danger
+              >
+                Eliminar todas
+              </Button>
+            )}
+          </Space>
         </Space>
       </div>
 
@@ -254,9 +279,10 @@ const NotificationCenter: React.FC = () => {
                       icon={<DeleteOutlined />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDismiss(notification.id);
+                        handleDeleteNotification(notification.id);
                       }}
-                      title="Descartar"
+                      title="Eliminar permanentemente"
+                      danger
                     />
                   </Space>
                 ]}
