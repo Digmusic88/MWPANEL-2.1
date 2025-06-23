@@ -349,20 +349,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   }
 
-  const getRoleColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return '#ef4444'
-      case UserRole.TEACHER:
-        return '#3b82f6'
-      case UserRole.STUDENT:
-        return '#10b981'
-      case UserRole.FAMILY:
-        return '#f59e0b'
-      default:
-        return '#6b7280'
-    }
-  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -375,15 +361,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       >
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
-              style={{ backgroundColor: getRoleColor(user?.role!) }}
-            >
-              MW
+            <div className="w-8 h-8 flex items-center justify-center">
+              <img
+                src="/logo.svg"
+                alt="Mundo World School"
+                className="w-full h-full object-contain"
+              />
             </div>
             {!collapsed && (
               <div>
-                <Text strong className="text-base">MW Panel</Text>
+                <Text strong className="text-base">Mundo World School</Text>
                 <div className="text-xs text-gray-500">
                   {getRoleLabel(user?.role!)}
                 </div>

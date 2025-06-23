@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
-import { Form, Input, Button, Card, Typography, Space, Alert } from 'antd'
-import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Typography, Alert } from 'antd'
+import { UserOutlined, LockOutlined } from '@ant-design/icons'
+import { motion } from 'framer-motion'
 import { useAuthStore } from '@store/authStore'
 import { LoginRequest } from '@/types/user'
+import SplitText from '@/components/animations/SplitText'
+import FadeInUp from '@/components/animations/FadeInUp'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
 const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -24,52 +27,115 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Title */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl font-bold">MW</span>
-          </div>
-          <Title level={2} className="!mb-2 !text-gray-800">
-            MW Panel
-          </Title>
-          <Text className="text-gray-600">
-            Sistema de Gestión Escolar
-          </Text>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute -top-4 -right-4 w-96 h-96 bg-blue-100 rounded-full opacity-20"
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: [0, 90, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-4 -left-4 w-96 h-96 bg-indigo-100 rounded-full opacity-20"
+          animate={{
+            scale: [1.1, 1, 1.1],
+            rotate: [0, -90, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+      </div>
 
-        {/* Login Form */}
-        <Card 
-          className="shadow-xl border-0"
-          style={{ borderRadius: '16px' }}
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo and Brand */}
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         >
-          <Space direction="vertical" size="large" className="w-full">
-            <div className="text-center">
-              <Title level={4} className="!mb-1">
-                Iniciar Sesión
-              </Title>
-              <Text type="secondary">
-                Accede a tu cuenta
-              </Text>
-            </div>
+          <motion.div
+            className="w-24 h-24 mx-auto mb-6 flex items-center justify-center relative"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <img
+              src="/logo.svg"
+              alt="Mundo World School"
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
+          </motion.div>
+          
+          <motion.h1 
+            className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <SplitText 
+              text="Mundo World School" 
+              variant="slideUp" 
+              delay={0.4}
+              stagger={0.05}
+            />
+          </motion.h1>
+          
+          <FadeInUp delay={0.8} className="text-slate-600 text-lg font-medium">
+            Plataforma de Gestión Educativa
+          </FadeInUp>
+        </motion.div>
 
-            {error && (
+        {/* Login Form Card */}
+        <motion.div
+          className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl shadow-blue-500/10"
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        >
+          <FadeInUp delay={0.7} className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+              Iniciar Sesión
+            </h2>
+            <Text className="text-slate-600">
+              Accede a tu plataforma educativa
+            </Text>
+          </FadeInUp>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6"
+            >
               <Alert
                 message={error}
                 type="error"
                 showIcon
                 closable
                 onClose={() => setError(null)}
+                className="rounded-xl border-0"
               />
-            )}
+            </motion.div>
+          )}
 
+          <FadeInUp delay={0.9}>
             <Form
               name="login"
               onFinish={onFinish}
               autoComplete="off"
               size="large"
               layout="vertical"
+              className="space-y-6"
             >
               <Form.Item
                 name="email"
@@ -77,12 +143,16 @@ const LoginPage: React.FC = () => {
                   { required: true, message: 'Por favor ingresa tu email' },
                   { type: 'email', message: 'Ingresa un email válido' },
                 ]}
+                className="mb-0"
               >
-                <Input
-                  prefix={<UserOutlined className="text-gray-400" />}
-                  placeholder="Email"
-                  autoComplete="email"
-                />
+                <motion.div whileFocus={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Input
+                    prefix={<UserOutlined className="text-slate-400" />}
+                    placeholder="Correo electrónico"
+                    autoComplete="email"
+                    className="h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:shadow-lg transition-all duration-300"
+                  />
+                </motion.div>
               </Form.Item>
 
               <Form.Item
@@ -91,49 +161,100 @@ const LoginPage: React.FC = () => {
                   { required: true, message: 'Por favor ingresa tu contraseña' },
                   { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' },
                 ]}
+                className="mb-0"
               >
-                <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  placeholder="Contraseña"
-                  autoComplete="current-password"
-                />
+                <motion.div whileFocus={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Input.Password
+                    prefix={<LockOutlined className="text-slate-400" />}
+                    placeholder="Contraseña"
+                    autoComplete="current-password"
+                    className="h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:shadow-lg transition-all duration-300"
+                  />
+                </motion.div>
               </Form.Item>
 
-              <Form.Item className="!mb-0">
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  icon={<LoginOutlined />}
-                  className="w-full h-12 text-base font-medium"
-                  style={{ borderRadius: '8px' }}
+              <Form.Item className="!mb-0 !mt-8">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    {loading ? (
+                      <motion.span
+                        animate={{ opacity: [1, 0.5, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                      >
+                        Iniciando sesión...
+                      </motion.span>
+                    ) : (
+                      'Iniciar Sesión'
+                    )}
+                  </Button>
+                </motion.div>
               </Form.Item>
             </Form>
+          </FadeInUp>
 
-            {/* Demo Credentials */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <Text className="text-sm text-gray-600 block mb-2">
-                <strong>Credenciales de prueba:</strong>
+          {/* Demo Credentials */}
+          <FadeInUp delay={1.1} className="mt-8">
+            <motion.div 
+              className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 rounded-2xl border border-slate-100"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <Text className="text-sm text-slate-700 font-semibold block mb-3">
+                🔑 Credenciales de demostración:
               </Text>
-              <Space direction="vertical" size="small" className="text-xs text-gray-600">
-                <div>👨‍💼 Admin: admin@mwpanel.com / Admin123!</div>
-                <div>👨‍🏫 Profesor: profesor@mwpanel.com / Profesor123!</div>
-                <div>👨‍🎓 Estudiante: estudiante@mwpanel.com / Estudiante123!</div>
-                <div>👨‍👩‍👧‍👦 Familia: familia@mwpanel.com / Familia123!</div>
-              </Space>
-            </div>
-          </Space>
-        </Card>
+              <div className="grid grid-cols-1 gap-2 text-xs text-slate-600">
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍💼</span>
+                  <span><strong>Admin:</strong> admin@mwpanel.com / Admin123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🏫</span>
+                  <span><strong>Profesor:</strong> profesor@mwpanel.com / Profesor123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🎓</span>
+                  <span><strong>Estudiante:</strong> estudiante@mwpanel.com / Estudiante123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍👩‍👧‍👦</span>
+                  <span><strong>Familia:</strong> familia@mwpanel.com / Familia123!</span>
+                </motion.div>
+              </div>
+            </motion.div>
+          </FadeInUp>
+        </motion.div>
 
         {/* Footer */}
-        <div className="text-center mt-8">
-          <Text type="secondary" className="text-sm">
-            © 2024 MW Panel. Todos los derechos reservados.
-          </Text>
-        </div>
+        <FadeInUp delay={1.3} className="text-center mt-8">
+          <motion.p 
+            className="text-slate-500 text-sm"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            © 2024 Mundo World School. Todos los derechos reservados.
+          </motion.p>
+        </FadeInUp>
       </div>
     </div>
   )
