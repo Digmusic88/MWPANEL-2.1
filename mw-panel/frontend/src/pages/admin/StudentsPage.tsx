@@ -35,6 +35,7 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import apiClient from '@services/apiClient'
+import StudentEvaluations from '../../components/StudentEvaluations'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -79,8 +80,10 @@ const StudentsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isDetailDrawerVisible, setIsDetailDrawerVisible] = useState(false)
+  const [isEvaluationsVisible, setIsEvaluationsVisible] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
+  const [evaluatingStudent, setEvaluatingStudent] = useState<Student | null>(null)
   const [form] = Form.useForm()
 
   // Fetch students
@@ -567,7 +570,10 @@ const StudentsPage: React.FC = () => {
                   type="default" 
                   block 
                   icon={<FileTextOutlined />}
-                  onClick={() => message.info('Función de evaluaciones en desarrollo')}
+                  onClick={() => {
+                    setEvaluatingStudent(viewingStudent)
+                    setIsEvaluationsVisible(true)
+                  }}
                 >
                   Ver Evaluaciones
                 </Button>
@@ -685,6 +691,16 @@ const StudentsPage: React.FC = () => {
           </div>
         </Form>
       </Modal>
+
+      {/* Student Evaluations Modal */}
+      <StudentEvaluations
+        visible={isEvaluationsVisible}
+        onClose={() => {
+          setIsEvaluationsVisible(false)
+          setEvaluatingStudent(null)
+        }}
+        student={evaluatingStudent}
+      />
     </div>
   )
 }

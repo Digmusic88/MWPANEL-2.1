@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Typography, Tag, Tooltip, Empty } from 'antd';
 import { ClockCircleOutlined, UserOutlined, HomeOutlined } from '@ant-design/icons';
 import { getSubjectStyles } from '../utils/subjectColors';
+import '../styles/print.css';
 
 const { Title, Text } = Typography;
 
@@ -63,6 +64,7 @@ interface ScheduleGridProps {
   loading?: boolean;
 }
 
+
 // Días de la semana
 const WEEKDAYS = [
   { key: 1, label: 'Lunes', short: 'L' },
@@ -100,7 +102,7 @@ const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     return Array.from(slots.values()).sort((a, b) => a.order - b.order);
   }, [sessions]);
 
-  // Función para renderizar una celda de la clase
+  // Función para renderizar una celda de la clase (modo pantalla)
   const renderScheduleCell = (dayOfWeek: number, timeSlotOrder: number) => {
     const session = scheduleMatrix[dayOfWeek]?.[timeSlotOrder];
     
@@ -140,6 +142,7 @@ const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         placement="top"
       >
         <div 
+          className="schedule-cell"
           style={{
             ...getSubjectStyles(subject.name),
             height: '80px',
@@ -163,6 +166,7 @@ const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     );
   };
 
+
   if (!sessions.length) {
     return (
       <Card>
@@ -175,25 +179,27 @@ const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   }
 
   return (
-    <Card 
-      title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={4} style={{ margin: 0 }}>
-            Horario de {classGroup.name}
-          </Title>
-          <div>
-            <Tag color="blue">{classGroup.academicYear.name}</Tag>
-            {classGroup.courses.map(course => (
-              <Tag key={course.id} color="green">{course.name}</Tag>
-            ))}
+    <>
+      <Card 
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={4} style={{ margin: 0 }}>
+              Horario de {classGroup.name}
+            </Title>
+            <div>
+              <Tag color="blue">{classGroup.academicYear.name}</Tag>
+              {classGroup.courses.map(course => (
+                <Tag key={course.id} color="green">{course.name}</Tag>
+              ))}
+            </div>
           </div>
-        </div>
-      }
-      loading={loading}
-      style={{ marginBottom: '24px' }}
-    >
+        }
+        loading={loading}
+        style={{ marginBottom: '24px' }}
+        className="no-print"
+      >
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px' }}>
+        <table className="schedule-grid-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px' }}>
           <thead>
             <tr>
               <th style={{ 
@@ -291,7 +297,9 @@ const ScheduleGrid: React.FC<ScheduleGridProps> = ({
           ))}
         </div>
       </div>
-    </Card>
+      </Card>
+
+    </>
   );
 };
 

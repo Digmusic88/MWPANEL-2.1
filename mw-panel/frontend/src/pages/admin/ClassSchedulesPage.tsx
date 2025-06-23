@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons';
 import ScheduleGrid, { ScheduleSession, ClassGroup } from '@/components/ScheduleGrid';
 import apiClient from '@/services/apiClient';
+import '@/styles/print.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -123,7 +124,7 @@ const ClassSchedulesPage: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '24px' }} className="no-print">
         <Row justify="space-between" align="middle">
           <Col>
             <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -157,7 +158,7 @@ const ClassSchedulesPage: React.FC = () => {
       </div>
 
       {/* Filtros */}
-      <Card style={{ marginBottom: '24px' }}>
+      <Card style={{ marginBottom: '24px' }} className="no-print">
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={8}>
             <div>
@@ -238,6 +239,7 @@ const ClassSchedulesPage: React.FC = () => {
           type="info"
           showIcon
           style={{ marginBottom: '24px' }}
+          className="no-print"
         />
       )}
 
@@ -248,13 +250,14 @@ const ClassSchedulesPage: React.FC = () => {
           type="info"
           showIcon
           style={{ marginBottom: '24px' }}
+          className="no-print"
         />
       )}
 
       {/* Contenido principal - Horario gráfico */}
       {selectedClassGroup && selectedGroup && (
         <div>
-          <Divider orientation="left">
+          <Divider orientation="left" className="no-print">
             <Space>
               <CalendarOutlined />
               <span>Horario Semanal - {selectedGroup.name}</span>
@@ -275,6 +278,7 @@ const ClassSchedulesPage: React.FC = () => {
           title="Resumen del Horario"
           style={{ marginTop: '24px' }}
           size="small"
+          className="no-print"
         >
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={6}>
