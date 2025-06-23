@@ -31,7 +31,7 @@ let FamiliesService = class FamiliesService {
         this.dataSource = dataSource;
     }
     async findAll() {
-        return this.familiesRepository.find({
+        const families = await this.familiesRepository.find({
             relations: [
                 'primaryContact',
                 'primaryContact.profile',
@@ -40,6 +40,17 @@ let FamiliesService = class FamiliesService {
             ],
             order: { createdAt: 'DESC' },
         });
+        const familiesWithStudents = await Promise.all(families.map(async (family) => {
+            const familyStudents = await this.familyStudentRepository.find({
+                where: { family: { id: family.id } },
+                relations: ['student', 'student.user', 'student.user.profile'],
+            });
+            return {
+                ...family,
+                students: familyStudents,
+            };
+        }));
+        return familiesWithStudents;
     }
     async findOne(id) {
         const family = await this.familiesRepository.findOne({
@@ -126,7 +137,21 @@ let FamiliesService = class FamiliesService {
                     await this.updateFamilyUser(family.secondaryContact.id, secondaryContact, queryRunner);
                 }
                 else {
-                    const newSecondaryUser = await this.createFamilyUser(secondaryContact, queryRunner);
+                    if (!secondaryContact.email || !secondaryContact.password || !secondaryContact.firstName || !secondaryContact.lastName || !secondaryContact.phone) {
+                        throw new common_1.BadRequestException('Para crear un nuevo contacto secundario, email, password, firstName, lastName y phone son requeridos');
+                    }
+                    const newContactDto = {
+                        email: secondaryContact.email,
+                        password: secondaryContact.password,
+                        firstName: secondaryContact.firstName,
+                        lastName: secondaryContact.lastName,
+                        phone: secondaryContact.phone,
+                        dateOfBirth: secondaryContact.dateOfBirth,
+                        documentNumber: secondaryContact.documentNumber,
+                        address: secondaryContact.address,
+                        occupation: secondaryContact.occupation,
+                    };
+                    const newSecondaryUser = await this.createFamilyUser(newContactDto, queryRunner);
                     family.secondaryContact = newSecondaryUser;
                     await queryRunner.manager.save(family);
                 }
@@ -320,7 +345,7 @@ let FamiliesService = class FamiliesService {
         return savedUser;
     }
     async updateFamilyUser(userId, contactDto, queryRunner) {
-        const { email, firstName, lastName, dateOfBirth, documentNumber, phone, address, occupation } = contactDto;
+        const { email, password, firstName, lastName, dateOfBirth, documentNumber, phone, address, occupation } = contactDto;
         const user = await this.usersRepository.findOne({
             where: { id: userId },
             relations: ['profile'],
@@ -328,30 +353,56 @@ let FamiliesService = class FamiliesService {
         if (!user) {
             throw new common_1.NotFoundException(`Usuario con ID ${userId} no encontrado`);
         }
+        let userUpdated = false;
         if (email && email !== user.email) {
             const existingUser = await this.usersRepository.findOne({ where: { email } });
             if (existingUser && existingUser.id !== userId) {
                 throw new common_1.ConflictException(`El email ${email} ya está registrado`);
             }
             user.email = email;
+            userUpdated = true;
+        }
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            user.passwordHash = hashedPassword;
+            userUpdated = true;
+        }
+        if (userUpdated) {
             await queryRunner.manager.save(user);
         }
         const profile = user.profile;
-        if (firstName)
+        let profileUpdated = false;
+        if (firstName !== undefined) {
             profile.firstName = firstName;
-        if (lastName)
+            profileUpdated = true;
+        }
+        if (lastName !== undefined) {
             profile.lastName = lastName;
-        if (dateOfBirth)
-            profile.dateOfBirth = new Date(dateOfBirth);
-        if (documentNumber)
+            profileUpdated = true;
+        }
+        if (dateOfBirth !== undefined) {
+            profile.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+            profileUpdated = true;
+        }
+        if (documentNumber !== undefined) {
             profile.documentNumber = documentNumber;
-        if (phone)
+            profileUpdated = true;
+        }
+        if (phone !== undefined) {
             profile.phone = phone;
-        if (address)
+            profileUpdated = true;
+        }
+        if (address !== undefined) {
             profile.address = address;
-        if (occupation)
+            profileUpdated = true;
+        }
+        if (occupation !== undefined) {
             profile.education = occupation;
-        await queryRunner.manager.save(profile);
+            profileUpdated = true;
+        }
+        if (profileUpdated) {
+            await queryRunner.manager.save(profile);
+        }
     }
 };
 exports.FamiliesService = FamiliesService;

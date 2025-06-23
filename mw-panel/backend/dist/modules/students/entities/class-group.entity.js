@@ -35,9 +35,14 @@ __decorate([
     __metadata("design:type", academic_year_entity_1.AcademicYear)
 ], ClassGroup.prototype, "academicYear", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => course_entity_1.Course),
-    __metadata("design:type", course_entity_1.Course)
-], ClassGroup.prototype, "course", void 0);
+    (0, typeorm_1.ManyToMany)(() => course_entity_1.Course),
+    (0, typeorm_1.JoinTable)({
+        name: 'class_group_courses',
+        joinColumn: { name: 'classGroupId', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'courseId', referencedColumnName: 'id' },
+    }),
+    __metadata("design:type", Array)
+], ClassGroup.prototype, "courses", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => teacher_entity_1.Teacher),
     __metadata("design:type", teacher_entity_1.Teacher)

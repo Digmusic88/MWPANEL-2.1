@@ -8,6 +8,9 @@ import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
 import { FamiliesModule } from './modules/families/families.module';
 import { ClassGroupsModule } from './modules/class-groups/class-groups.module';
+import { SubjectsModule } from './modules/subjects/subjects.module';
+import { SchedulesModule } from './modules/schedules/schedules.module';
+import { AcademicYearsModule } from './modules/academic-years/academic-years.module';
 import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { EvaluationsModule } from './modules/evaluations/evaluations.module';
 import { CompetenciesModule } from './modules/competencies/competencies.module';
@@ -51,6 +54,9 @@ import appConfig from './config/app.config';
     TeachersModule,
     FamiliesModule,
     ClassGroupsModule,
+    SubjectsModule,
+    SchedulesModule,
+    AcademicYearsModule,
     EnrollmentModule,
     EvaluationsModule,
     CompetenciesModule,

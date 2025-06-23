@@ -26,7 +26,8 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Allow additional fields for optional properties
+      skipMissingProperties: true, // Skip validation of missing/undefined properties
       transformOptions: {
         enableImplicitConversion: true,
       },

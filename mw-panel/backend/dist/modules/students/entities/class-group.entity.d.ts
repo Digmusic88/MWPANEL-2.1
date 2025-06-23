@@ -7,7 +7,7 @@ export declare class ClassGroup {
     name: string;
     section: string;
     academicYear: AcademicYear;
-    course: Course;
+    courses: Course[];
     tutor: Teacher;
     students: Student[];
     createdAt: Date;

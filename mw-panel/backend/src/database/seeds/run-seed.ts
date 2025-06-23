@@ -7,6 +7,7 @@ import { seedAreas } from './03-areas.seed';
 import { seedUsers } from './04-users.seed';
 import { seedAcademicStructure } from './05-academic-structure.seed';
 import { seedTeachers } from './06-teachers.seed';
+import { seedEvaluations } from './07-evaluations.seed';
 
 // Load environment variables
 config();
@@ -54,6 +55,10 @@ async function runSeeds() {
 
     console.log('👨‍🏫 Creando profesores...');
     await seedTeachers(AppDataSource);
+    console.log('');
+
+    console.log('📝 Creando sistema de evaluaciones...');
+    await seedEvaluations(AppDataSource);
     console.log('');
 
     console.log('🎉 ¡Semillas ejecutadas exitosamente!');

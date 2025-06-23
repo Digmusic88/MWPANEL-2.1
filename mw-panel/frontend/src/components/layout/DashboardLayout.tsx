@@ -93,6 +93,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 onClick: () => navigate('/admin/subjects'),
               },
               {
+                key: 'schedules',
+                label: 'Horarios',
+                onClick: () => navigate('/admin/schedules'),
+              },
+              {
+                key: 'class-schedules',
+                label: 'Horarios por Grupo',
+                onClick: () => navigate('/admin/class-schedules'),
+              },
+              {
                 key: 'competencies',
                 label: 'Competencias',
                 onClick: () => navigate('/admin/competencies'),
@@ -127,6 +137,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <TeamOutlined />,
             label: 'Mis Clases',
             onClick: () => navigate('/teacher/classes'),
+          },
+          {
+            key: 'schedule',
+            icon: <BookOutlined />,
+            label: 'Mi Horario',
+            onClick: () => navigate('/teacher/schedule'),
           },
           {
             key: 'evaluations',

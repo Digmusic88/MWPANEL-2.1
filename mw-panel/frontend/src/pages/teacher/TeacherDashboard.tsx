@@ -3,13 +3,13 @@ import { Routes, Route } from 'react-router-dom'
 import { Card, Row, Col, Statistic, Typography, Space, List, Avatar, Progress, Button, Spin, message, Alert } from 'antd'
 import {
   TeamOutlined,
-  FileTextOutlined,
   BookOutlined,
   CalendarOutlined,
   PlusOutlined,
   EyeOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
+import TeacherSchedulePage from './TeacherSchedulePage'
 
 const { Title, Text } = Typography
 
@@ -42,12 +42,15 @@ const TeacherDashboardHome: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Mock stats for now - could be calculated from real data
+  // Real data state
   const [teacherClasses, setTeacherClasses] = useState<any[]>([])
+  const [teacherSubjects, setTeacherSubjects] = useState<any[]>([])
 
   const stats = {
     totalClasses: teacherClasses.length,
     totalStudents: teacherClasses.reduce((total, classGroup) => total + (classGroup.students?.length || 0), 0),
+    totalSubjects: teacherSubjects.length,
+    totalAssignments: teacherSubjects.reduce((total, assignment) => total + assignment.weeklyHours, 0),
     pendingEvaluations: 23,
     completedEvaluations: 87,
   }
@@ -100,6 +103,17 @@ const TeacherDashboardHome: React.FC = () => {
     }
   }
 
+  // Fetch teacher's subject assignments
+  const fetchTeacherSubjects = async (teacherId: string) => {
+    try {
+      const response = await apiClient.get(`/subjects/assignments/teacher/${teacherId}`)
+      setTeacherSubjects(response.data)
+    } catch (error: any) {
+      console.error('Error fetching teacher subjects:', error)
+      // Don't show error message for this, as it's not critical
+    }
+  }
+
   useEffect(() => {
     fetchTeacherProfile()
   }, [])
@@ -107,6 +121,7 @@ const TeacherDashboardHome: React.FC = () => {
   useEffect(() => {
     if (teacherProfile?.id) {
       fetchTeacherClasses(teacherProfile.id)
+      fetchTeacherSubjects(teacherProfile.id)
     }
   }, [teacherProfile])
 
@@ -210,20 +225,21 @@ const TeacherDashboardHome: React.FC = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="Evaluaciones Pendientes"
-              value={stats.pendingEvaluations}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#f5222d' }}
+              title="Asignaturas"
+              value={stats.totalSubjects}
+              prefix={<BookOutlined />}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="Evaluaciones Completadas"
-              value={stats.completedEvaluations}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              title="Horas Semanales"
+              value={stats.totalAssignments}
+              suffix="h"
+              prefix={<CalendarOutlined />}
+              valueStyle={{ color: '#f5222d' }}
             />
           </Card>
         </Col>
@@ -232,7 +248,7 @@ const TeacherDashboardHome: React.FC = () => {
       {/* Main Content */}
       <Row gutter={[16, 16]}>
         {/* My Classes */}
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={8}>
           <Card 
             title="Mis Clases" 
             extra={
@@ -282,8 +298,59 @@ const TeacherDashboardHome: React.FC = () => {
           </Card>
         </Col>
 
+        {/* My Subjects */}
+        <Col xs={24} lg={8}>
+          <Card 
+            title="Mis Asignaturas" 
+            extra={
+              <Button type="primary" icon={<PlusOutlined />} size="small">
+                Ver Horario
+              </Button>
+            }
+          >
+            <List
+              dataSource={teacherSubjects}
+              locale={{
+                emptyText: (
+                  <div className="text-center py-8">
+                    <BookOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+                    <div className="mt-4">
+                      <Text type="secondary">No tienes asignaturas asignadas</Text>
+                    </div>
+                  </div>
+                )
+              }}
+              renderItem={(assignment) => (
+                <List.Item
+                  actions={[
+                    <Button type="link" icon={<EyeOutlined />} size="small">
+                      Ver
+                    </Button>
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar style={{ backgroundColor: '#722ed1' }}>
+                        {assignment.subject.code}
+                      </Avatar>
+                    }
+                    title={assignment.subject.name}
+                    description={
+                      <Space direction="vertical" size="small">
+                        <Text type="secondary">{assignment.classGroup.name}</Text>
+                        <Text className="text-sm">{assignment.weeklyHours}h semanales</Text>
+                        <Text className="text-xs text-gray-400">{assignment.academicYear.name}</Text>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+
         {/* Progress and Schedule */}
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={8}>
           <Space direction="vertical" size="large" className="w-full">
             {/* Evaluation Progress */}
             <Card title="Progreso de Evaluaciones">
@@ -406,6 +473,7 @@ const TeacherDashboard: React.FC = () => {
   return (
     <Routes>
       <Route index element={<TeacherDashboardHome />} />
+      <Route path="schedule" element={<TeacherSchedulePage />} />
       {/* Add more teacher routes here */}
     </Routes>
   )
