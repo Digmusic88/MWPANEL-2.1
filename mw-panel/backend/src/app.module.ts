@@ -16,6 +16,7 @@ import { EvaluationsModule } from './modules/evaluations/evaluations.module';
 import { CompetenciesModule } from './modules/competencies/competencies.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import databaseConfig from './config/database.config';
@@ -62,6 +63,7 @@ import appConfig from './config/app.config';
     CompetenciesModule,
     ReportsModule,
     DashboardModule,
+    CommunicationsModule,
   ],
   controllers: [],
   providers: [

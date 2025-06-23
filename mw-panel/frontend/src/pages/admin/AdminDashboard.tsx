@@ -8,6 +8,8 @@ import SubjectsPage from './SubjectsPage'
 import SchedulesPage from './SchedulesPage'
 import ClassSchedulesPage from './ClassSchedulesPage'
 import EnrollmentPage from './EnrollmentPage'
+import MessagesPage from '../communications/MessagesPage'
+import NotificationsPage from '../communications/NotificationsPage'
 import { Card, Row, Col, Statistic, Typography, Space, Progress, Spin, message } from 'antd'
 import apiClient from '@services/apiClient'
 import {
@@ -278,6 +280,8 @@ const AdminDashboard: React.FC = () => {
         <Route path="schedules" element={<SchedulesPage />} />
         <Route path="class-schedules" element={<ClassSchedulesPage />} />
         <Route path="enrollment" element={<EnrollmentPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="*" element={
           <div style={{ padding: '20px', backgroundColor: '#ffcccc', border: '2px solid orange' }}>
             <h1>RUTA NO ENCONTRADA EN ADMIN</h1>

@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import TeacherSchedulePage from './TeacherSchedulePage'
+import MessagesPage from '../communications/MessagesPage'
 
 const { Title, Text } = Typography
 
@@ -474,6 +475,7 @@ const TeacherDashboard: React.FC = () => {
     <Routes>
       <Route index element={<TeacherDashboardHome />} />
       <Route path="schedule" element={<TeacherSchedulePage />} />
+      <Route path="messages" element={<MessagesPage />} />
       {/* Add more teacher routes here */}
     </Routes>
   )

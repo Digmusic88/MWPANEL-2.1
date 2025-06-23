@@ -57,7 +57,8 @@ export class FamiliesController {
   @ApiOperation({ summary: 'Obtener datos del dashboard para la familia logueada' })
   @ApiResponse({ status: 200, description: 'Datos del dashboard familiar' })
   getMyFamilyDashboard(@Request() req: any) {
-    return this.familiesService.getFamilyDashboard(req.user.id);
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.familiesService.getFamilyDashboard(userId);
   }
 
   @Get(':id')

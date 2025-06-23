@@ -6,16 +6,18 @@ import {
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
-  BellOutlined,
   DashboardOutlined,
   TeamOutlined,
   BookOutlined,
   FileTextOutlined,
   BarChartOutlined,
+  MessageOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
 import { useLocation, useNavigate } from 'react-router-dom'
+import NotificationCenter from '../NotificationCenter'
+import { useUnreadMessages } from '../../hooks/useUnreadMessages'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -29,6 +31,51 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, logout } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
+  const { unreadCount } = useUnreadMessages()
+
+  // Helper para crear item de menú con badge
+  const createMessageMenuItem = (key: string, label: string, path: string) => ({
+    key,
+    icon: collapsed ? (
+      <Badge 
+        count={unreadCount} 
+        size="small" 
+        offset={[8, 8]}
+        style={{ 
+          backgroundColor: '#ff4d4f',
+          fontSize: '10px',
+          height: '16px',
+          minWidth: '16px',
+          lineHeight: '16px',
+          borderRadius: '8px'
+        }}
+      >
+        <MessageOutlined />
+      </Badge>
+    ) : (
+      <MessageOutlined />
+    ),
+    label: (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{label}</span>
+        {!collapsed && unreadCount > 0 && (
+          <Badge 
+            count={unreadCount} 
+            size="small" 
+            style={{ 
+              backgroundColor: '#ff4d4f',
+              fontSize: '11px',
+              height: '18px',
+              minWidth: '18px',
+              lineHeight: '18px',
+              borderRadius: '9px'
+            }}
+          />
+        )}
+      </div>
+    ),
+    onClick: () => navigate(path),
+  });
 
   // Get menu items based on user role
   const getMenuItems = () => {
@@ -116,6 +163,59 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             onClick: () => navigate('/admin/evaluations'),
           },
           {
+            key: 'communications',
+            icon: collapsed ? (
+              <Badge 
+                count={unreadCount} 
+                size="small" 
+                offset={[8, 8]}
+                style={{ 
+                  backgroundColor: '#ff4d4f',
+                  fontSize: '10px',
+                  height: '16px',
+                  minWidth: '16px',
+                  lineHeight: '16px',
+                  borderRadius: '8px'
+                }}
+              >
+                <MessageOutlined />
+              </Badge>
+            ) : (
+              <MessageOutlined />
+            ),
+            label: (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Comunicaciones</span>
+                {!collapsed && unreadCount > 0 && (
+                  <Badge 
+                    count={unreadCount} 
+                    size="small" 
+                    style={{ 
+                      backgroundColor: '#ff4d4f',
+                      fontSize: '11px',
+                      height: '18px',
+                      minWidth: '18px',
+                      lineHeight: '18px',
+                      borderRadius: '9px'
+                    }}
+                  />
+                )}
+              </div>
+            ),
+            children: [
+              {
+                key: 'messages',
+                label: 'Mensajes',
+                onClick: () => navigate('/admin/messages'),
+              },
+              {
+                key: 'notifications',
+                label: 'Notificaciones',
+                onClick: () => navigate('/admin/notifications'),
+              },
+            ],
+          },
+          {
             key: 'reports',
             icon: <BarChartOutlined />,
             label: 'Informes',
@@ -156,6 +256,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Estudiantes',
             onClick: () => navigate('/teacher/students'),
           },
+          createMessageMenuItem('messages', 'Mensajes', '/teacher/messages'),
           {
             key: 'reports',
             icon: <BarChartOutlined />,
@@ -202,12 +303,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Calificaciones',
             onClick: () => navigate('/family/grades'),
           },
-          {
-            key: 'communications',
-            icon: <BellOutlined />,
-            label: 'Comunicaciones',
-            onClick: () => navigate('/family/communications'),
-          },
+          createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]
 
       default:
@@ -316,13 +412,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
 
           <Space size="middle">
-            <Badge count={3} size="small">
-              <Button 
-                type="text" 
-                icon={<BellOutlined />} 
-                className="flex items-center justify-center w-8 h-8"
-              />
-            </Badge>
+            <NotificationCenter />
 
             <Dropdown 
               menu={{ items: userMenuItems }}
