@@ -148,4 +148,65 @@ export class SubjectsController {
   removeAssignment(@Param('id') id: string) {
     return this.subjectsService.removeAssignment(id);
   }
+
+  // === ENDPOINTS FOR EVALUATIONS INTEGRATION ===
+
+  @Get('student/:studentId')
+  @ApiOperation({ summary: 'Obtener asignaturas de un estudiante' })
+  @ApiResponse({ status: 200, description: 'Asignaturas del estudiante obtenidas exitosamente' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY)
+  findSubjectsByStudent(@Param('studentId') studentId: string) {
+    return this.subjectsService.findSubjectsByStudent(studentId);
+  }
+
+  @Get('teacher/:teacherId')
+  @ApiOperation({ summary: 'Obtener asignaturas que imparte un profesor' })
+  @ApiResponse({ status: 200, description: 'Asignaturas del profesor obtenidas exitosamente' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  findSubjectsByTeacher(@Param('teacherId') teacherId: string) {
+    return this.subjectsService.findSubjectsByTeacher(teacherId);
+  }
+
+  @Get('teacher/:teacherId/group/:groupId')
+  @ApiOperation({ summary: 'Obtener asignaturas que un profesor imparte a un grupo específico' })
+  @ApiResponse({ status: 200, description: 'Asignaturas obtenidas exitosamente' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  findSubjectsByTeacherAndGroup(
+    @Param('teacherId') teacherId: string,
+    @Param('groupId') groupId: string
+  ) {
+    return this.subjectsService.findSubjectsByTeacherAndGroup(teacherId, groupId);
+  }
+
+  @Get('assignment-details')
+  @ApiOperation({ summary: 'Obtener detalles de asignación específica' })
+  @ApiResponse({ status: 200, description: 'Detalles de asignación obtenidos exitosamente' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  findAssignmentDetails(
+    @Query('teacherId') teacherId: string,
+    @Query('subjectId') subjectId: string,
+    @Query('classGroupId') classGroupId: string
+  ) {
+    return this.subjectsService.findAssignmentDetails(teacherId, subjectId, classGroupId);
+  }
+
+  @Get('statistics')
+  @ApiOperation({ summary: 'Obtener estadísticas del sistema de asignaturas' })
+  @ApiResponse({ status: 200, description: 'Estadísticas obtenidas exitosamente' })
+  @Roles(UserRole.ADMIN)
+  getSubjectStatistics() {
+    return this.subjectsService.getSubjectStatistics();
+  }
+
+  @Get('can-evaluate')
+  @ApiOperation({ summary: 'Verificar si un profesor puede evaluar una asignatura para un estudiante' })
+  @ApiResponse({ status: 200, description: 'Verificación completada' })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  canTeacherEvaluateSubject(
+    @Query('teacherId') teacherId: string,
+    @Query('subjectId') subjectId: string,
+    @Query('studentId') studentId: string
+  ) {
+    return this.subjectsService.canTeacherEvaluateSubject(teacherId, subjectId, studentId);
+  }
 }

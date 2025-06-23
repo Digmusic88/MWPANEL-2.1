@@ -8,6 +8,7 @@ import { seedUsers } from './04-users.seed';
 import { seedAcademicStructure } from './05-academic-structure.seed';
 import { seedTeachers } from './06-teachers.seed';
 import { seedEvaluations } from './07-evaluations.seed';
+import { seedSubjectAssignments } from './08-subject-assignments.seed';
 
 // Load environment variables
 config();
@@ -59,6 +60,10 @@ async function runSeeds() {
 
     console.log('📝 Creando sistema de evaluaciones...');
     await seedEvaluations(AppDataSource);
+    console.log('');
+
+    console.log('📚 Creando asignaciones de asignaturas...');
+    await seedSubjectAssignments(AppDataSource);
     console.log('');
 
     console.log('🎉 ¡Semillas ejecutadas exitosamente!');
