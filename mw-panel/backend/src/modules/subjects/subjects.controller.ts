@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubjectsService } from './subjects.service';
@@ -43,6 +44,14 @@ export class SubjectsController {
   @Roles(UserRole.ADMIN)
   createSubject(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectsService.createSubject(createSubjectDto);
+  }
+
+  @Get('my-assignments')
+  @ApiOperation({ summary: 'Obtener asignaciones del profesor logueado' })
+  @ApiResponse({ status: 200, description: 'Asignaciones del profesor obtenidas exitosamente' })
+  @Roles(UserRole.TEACHER)
+  getMyAssignments(@Request() req) {
+    return this.subjectsService.findAssignmentsByTeacher(req.user.sub);
   }
 
   @Get('by-course/:courseId')

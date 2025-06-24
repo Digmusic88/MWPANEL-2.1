@@ -254,4 +254,17 @@ export class TeachersService {
 
     return dashboardData;
   }
+
+  async findByUserId(userId: string): Promise<Teacher> {
+    const teacher = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user', 'user.profile'],
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Profesor no encontrado');
+    }
+
+    return teacher;
+  }
 }

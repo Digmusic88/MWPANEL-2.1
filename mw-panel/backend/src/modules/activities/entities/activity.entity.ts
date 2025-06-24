@@ -11,6 +11,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { ClassGroup } from '../../students/entities/class-group.entity';
 import { Teacher } from '../../teachers/entities/teacher.entity';
+import { SubjectAssignment } from '../../students/entities/subject-assignment.entity';
 import { ActivityAssessment } from './activity-assessment.entity';
 
 export enum ActivityValuationType {
@@ -72,6 +73,14 @@ export class Activity {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @ApiProperty({ description: 'Si la actividad está archivada' })
+  @Column({ type: 'boolean', default: false, name: 'is_archived' })
+  isArchived: boolean;
+
+  @ApiProperty({ description: 'Si la actividad es una plantilla reutilizable' })
+  @Column({ type: 'boolean', default: false, name: 'is_template' })
+  isTemplate: boolean;
+
   @ApiProperty({ description: 'ID del grupo de clase' })
   @Column({ name: 'class_group_id' })
   classGroupId: string;
@@ -79,6 +88,10 @@ export class Activity {
   @ApiProperty({ description: 'ID del profesor que creó la actividad' })
   @Column({ name: 'teacher_id' })
   teacherId: string;
+
+  @ApiProperty({ description: 'ID de la asignación de asignatura (obligatorio)' })
+  @Column({ name: 'subject_assignment_id' })
+  subjectAssignmentId: string;
 
   // Relaciones
   @ManyToOne(() => ClassGroup, (classGroup) => classGroup.id)
@@ -88,6 +101,10 @@ export class Activity {
   @ManyToOne(() => Teacher, (teacher) => teacher.id)
   @JoinColumn({ name: 'teacher_id' })
   teacher: Teacher;
+
+  @ManyToOne(() => SubjectAssignment, (subjectAssignment) => subjectAssignment.id)
+  @JoinColumn({ name: 'subject_assignment_id' })
+  subjectAssignment: SubjectAssignment;
 
   @OneToMany(() => ActivityAssessment, (assessment) => assessment.activity)
   assessments: ActivityAssessment[];

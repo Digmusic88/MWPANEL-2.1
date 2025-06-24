@@ -8,6 +8,9 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { AssessActivityDto, BulkAssessActivityDto } from './dto/assess-activity.dto';
 import { ActivityStatisticsDto, TeacherActivitySummaryDto } from './dto/activity-statistics.dto';
+import { SubjectAssignmentWithStudentsDto } from './dto/subject-assignment-with-students.dto';
+import { CreateFromTemplateDto } from './dto/activity-template.dto';
+import { SubjectActivitySummaryDto } from './dto/subject-activity-summary.dto';
 import { ClassGroup } from '../students/entities/class-group.entity';
 import { Student } from '../students/entities/student.entity';
 import { Family, FamilyStudent } from '../users/entities/family.entity';
@@ -40,8 +43,8 @@ export class ActivitiesService {
   // ==================== CRUD ACTIVIDADES ====================
 
   async create(createActivityDto: CreateActivityDto, teacherId: string): Promise<Activity> {
-    // Verificar que el profesor tiene acceso al grupo
-    await this.verifyTeacherAccess(teacherId, createActivityDto.classGroupId);
+    // Verificar que el profesor tiene acceso a la asignación de asignatura
+    await this.verifyTeacherSubjectAssignmentAccess(teacherId, createActivityDto.subjectAssignmentId);
 
     // Validar datos específicos del tipo de valoración
     if (createActivityDto.valuationType === ActivityValuationType.SCORE && !createActivityDto.maxScore) {
@@ -58,12 +61,16 @@ export class ActivitiesService {
       notifyOnHappy: createActivityDto.notifyOnHappy ?? false,
       notifyOnNeutral: createActivityDto.notifyOnNeutral ?? true,
       notifyOnSad: createActivityDto.notifyOnSad ?? true,
+      // Nuevos campos
+      isTemplate: createActivityDto.isTemplate ?? false,
+      isArchived: false,
     });
 
     const savedActivity = await this.activitiesRepository.save(activity);
 
-    // Crear registros de valoración vacíos para todos los estudiantes del grupo
-    await this.createAssessmentRecords(savedActivity.id, createActivityDto.classGroupId);
+    // Crear registros de valoración para estudiantes específicos o todo el grupo
+    const targetStudentIds = createActivityDto.targetStudentIds;
+    await this.createAssessmentRecordsForActivity(savedActivity.id, createActivityDto.subjectAssignmentId, targetStudentIds);
 
     return this.findOne(savedActivity.id);
   }
@@ -415,6 +422,9 @@ export class ActivitiesService {
       .leftJoin('activity.teacher', 'teacher')
       .leftJoin('teacher.user', 'teacherUser')
       .leftJoin('teacherUser.profile', 'teacherProfile')
+      .leftJoin('activity.subjectAssignment', 'subjectAssignment')
+      .leftJoin('subjectAssignment.subject', 'subject')
+      .leftJoin('subjectAssignment.classGroup', 'classGroup')
       .where('assessment.isAssessed = :isAssessed', { isAssessed: true })
       .andWhere('assessment.notifiedAt IS NOT NULL')
       .andWhere('activity.isActive = :isActive', { isActive: true });
@@ -444,6 +454,12 @@ export class ActivitiesService {
         'teacherUser.id',
         'teacherProfile.firstName',
         'teacherProfile.lastName',
+        'subjectAssignment.id',
+        'subject.id',
+        'subject.name',
+        'subject.code',
+        'classGroup.id',
+        'classGroup.name',
       ])
       .orderBy('assessment.assessedAt', 'DESC')
       .limit(limit)
@@ -648,5 +664,351 @@ export class ActivitiesService {
   async getTeacherSummaryByUserId(userId: string): Promise<TeacherActivitySummaryDto> {
     const teacherId = await this.getTeacherIdFromUserId(userId);
     return this.getTeacherSummary(teacherId);
+  }
+
+  // ==================== MÉTODOS POR ASIGNATURA ====================
+
+  async getTeacherSubjectAssignments(teacherId: string): Promise<SubjectAssignmentWithStudentsDto[]> {
+    const assignments = await this.subjectAssignmentsRepository.find({
+      where: { teacher: { id: teacherId } },
+      relations: [
+        'subject',
+        'classGroup',
+        'classGroup.students',
+        'classGroup.students.user',
+        'classGroup.students.user.profile',
+        'academicYear'
+      ],
+    });
+
+    return assignments.map(assignment => ({
+      id: assignment.id,
+      subject: {
+        id: assignment.subject.id,
+        name: assignment.subject.name,
+        code: assignment.subject.code,
+      },
+      classGroup: {
+        id: assignment.classGroup.id,
+        name: assignment.classGroup.name,
+      },
+      academicYear: {
+        id: assignment.academicYear.id,
+        name: assignment.academicYear.name,
+      },
+      weeklyHours: assignment.weeklyHours,
+      students: assignment.classGroup.students.map(student => ({
+        id: student.id,
+        enrollmentNumber: student.enrollmentNumber,
+        user: {
+          profile: {
+            firstName: student.user.profile.firstName,
+            lastName: student.user.profile.lastName,
+          }
+        }
+      })),
+    }));
+  }
+
+  async getTeacherSubjectAssignmentsByUserId(userId: string): Promise<SubjectAssignmentWithStudentsDto[]> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    return this.getTeacherSubjectAssignments(teacherId);
+  }
+
+  async findActivitiesBySubjectAssignmentUserId(
+    subjectAssignmentId: string,
+    userId: string,
+    includeArchived: boolean = false,
+  ): Promise<Activity[]> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    return this.findActivitiesBySubjectAssignment(subjectAssignmentId, teacherId, includeArchived);
+  }
+
+  async getSubjectActivitySummaryByUserId(
+    subjectAssignmentId: string,
+    userId: string,
+  ): Promise<SubjectActivitySummaryDto> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    return this.getSubjectActivitySummary(subjectAssignmentId, teacherId);
+  }
+
+  async getTeacherTemplatesByUserId(userId: string): Promise<Activity[]> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    return this.findTemplatesByTeacher(teacherId);
+  }
+
+  async createFromTemplateByUserId(
+    createFromTemplateDto: CreateFromTemplateDto,
+    userId: string,
+  ): Promise<Activity> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    return this.createFromTemplate(createFromTemplateDto, teacherId);
+  }
+
+  async toggleArchiveByUserId(activityId: string, userId: string): Promise<Activity> {
+    const teacherId = await this.getTeacherIdFromUserId(userId);
+    const activity = await this.findOne(activityId);
+    
+    if (activity.teacherId !== teacherId) {
+      throw new ForbiddenException('No tienes permisos para modificar esta actividad');
+    }
+
+    const newArchivedState = !activity.isArchived;
+    await this.activitiesRepository.update(activityId, { isArchived: newArchivedState });
+    
+    return this.findOne(activityId);
+  }
+
+  async findActivitiesBySubjectAssignment(
+    subjectAssignmentId: string,
+    teacherId: string,
+    includeArchived: boolean = false,
+    includeTemplates: boolean = false
+  ): Promise<Activity[]> {
+    await this.verifyTeacherSubjectAssignmentAccess(teacherId, subjectAssignmentId);
+
+    const query = this.activitiesRepository.createQueryBuilder('activity')
+      .leftJoinAndSelect('activity.subjectAssignment', 'subjectAssignment')
+      .leftJoinAndSelect('subjectAssignment.subject', 'subject')
+      .leftJoinAndSelect('activity.classGroup', 'classGroup')
+      .leftJoinAndSelect('activity.teacher', 'teacher')
+      .leftJoinAndSelect('activity.assessments', 'assessments')
+      .leftJoinAndSelect('assessments.student', 'student')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
+      .where('activity.subjectAssignmentId = :subjectAssignmentId', { subjectAssignmentId })
+      .andWhere('activity.isActive = :isActive', { isActive: true });
+
+    if (!includeArchived) {
+      query.andWhere('activity.isArchived = :isArchived', { isArchived: false });
+    }
+
+    if (!includeTemplates) {
+      query.andWhere('activity.isTemplate = :isTemplate', { isTemplate: false });
+    }
+
+    return query
+      .orderBy('activity.assignedDate', 'DESC')
+      .addOrderBy('activity.createdAt', 'DESC')
+      .getMany();
+  }
+
+  async findTemplatesByTeacher(teacherId: string): Promise<Activity[]> {
+    const query = this.activitiesRepository.createQueryBuilder('activity')
+      .leftJoinAndSelect('activity.subjectAssignment', 'subjectAssignment')
+      .leftJoinAndSelect('subjectAssignment.subject', 'subject')
+      .leftJoinAndSelect('activity.classGroup', 'classGroup')
+      .where('activity.teacherId = :teacherId', { teacherId })
+      .andWhere('activity.isTemplate = :isTemplate', { isTemplate: true })
+      .andWhere('activity.isActive = :isActive', { isActive: true });
+
+    return query
+      .orderBy('activity.createdAt', 'DESC')
+      .getMany();
+  }
+
+  async createFromTemplate(createFromTemplateDto: CreateFromTemplateDto, teacherId: string): Promise<Activity> {
+    const template = await this.activitiesRepository.findOne({
+      where: { id: createFromTemplateDto.templateId, isTemplate: true },
+      relations: ['subjectAssignment'],
+    });
+
+    if (!template) {
+      throw new NotFoundException('Plantilla de actividad no encontrada');
+    }
+
+    if (template.teacherId !== teacherId) {
+      throw new ForbiddenException('No tienes permisos para usar esta plantilla');
+    }
+
+    // Crear actividad desde plantilla
+    const newActivity = this.activitiesRepository.create({
+      name: template.name,
+      description: template.description,
+      assignedDate: new Date(createFromTemplateDto.assignedDate),
+      reviewDate: createFromTemplateDto.reviewDate ? new Date(createFromTemplateDto.reviewDate) : null,
+      valuationType: template.valuationType,
+      maxScore: template.maxScore,
+      notifyFamilies: template.notifyFamilies,
+      notifyOnHappy: template.notifyOnHappy,
+      notifyOnNeutral: template.notifyOnNeutral,
+      notifyOnSad: template.notifyOnSad,
+      classGroupId: template.classGroupId,
+      teacherId: template.teacherId,
+      subjectAssignmentId: template.subjectAssignmentId,
+      isTemplate: false,
+      isArchived: false,
+    });
+
+    const savedActivity = await this.activitiesRepository.save(newActivity);
+
+    // Crear registros de valoración
+    const targetStudentIds = createFromTemplateDto.targetStudentIds;
+    await this.createAssessmentRecordsForActivity(savedActivity.id, template.subjectAssignmentId, targetStudentIds);
+
+    return this.findOne(savedActivity.id);
+  }
+
+  async archiveActivity(activityId: string, teacherId: string): Promise<void> {
+    const activity = await this.findOne(activityId);
+
+    if (activity.teacherId !== teacherId) {
+      throw new ForbiddenException('No tienes permisos para archivar esta actividad');
+    }
+
+    await this.activitiesRepository.update(activityId, { isArchived: true });
+  }
+
+  async unarchiveActivity(activityId: string, teacherId: string): Promise<void> {
+    const activity = await this.findOne(activityId);
+
+    if (activity.teacherId !== teacherId) {
+      throw new ForbiddenException('No tienes permisos para desarchivar esta actividad');
+    }
+
+    await this.activitiesRepository.update(activityId, { isArchived: false });
+  }
+
+  async getSubjectActivitySummary(subjectAssignmentId: string, teacherId: string): Promise<SubjectActivitySummaryDto> {
+    await this.verifyTeacherSubjectAssignmentAccess(teacherId, subjectAssignmentId);
+
+    const subjectAssignment = await this.subjectAssignmentsRepository.findOne({
+      where: { id: subjectAssignmentId },
+      relations: ['subject', 'classGroup'],
+    });
+
+    if (!subjectAssignment) {
+      throw new NotFoundException('Asignación de asignatura no encontrada');
+    }
+
+    // Contar actividades
+    const totalActivities = await this.activitiesRepository.count({
+      where: { subjectAssignmentId, isActive: true },
+    });
+
+    const activeActivities = await this.activitiesRepository.count({
+      where: { subjectAssignmentId, isActive: true, isArchived: false, isTemplate: false },
+    });
+
+    const archivedActivities = await this.activitiesRepository.count({
+      where: { subjectAssignmentId, isActive: true, isArchived: true },
+    });
+
+    const templatesCount = await this.activitiesRepository.count({
+      where: { subjectAssignmentId, isActive: true, isTemplate: true },
+    });
+
+    // Valoraciones pendientes
+    const pendingAssessments = await this.assessmentsRepository
+      .createQueryBuilder('assessment')
+      .innerJoin('assessment.activity', 'activity')
+      .where('activity.subjectAssignmentId = :subjectAssignmentId', { subjectAssignmentId })
+      .andWhere('activity.isActive = :isActive', { isActive: true })
+      .andWhere('activity.isArchived = :isArchived', { isArchived: false })
+      .andWhere('assessment.isAssessed = :isAssessed', { isAssessed: false })
+      .getCount();
+
+    // Valoraciones de esta semana
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date();
+    endOfWeek.setDate(endOfWeek.getDate() - endOfWeek.getDay() + 6);
+
+    const weekCompletedAssessments = await this.assessmentsRepository
+      .createQueryBuilder('assessment')
+      .innerJoin('assessment.activity', 'activity')
+      .where('activity.subjectAssignmentId = :subjectAssignmentId', { subjectAssignmentId })
+      .andWhere('activity.isActive = :isActive', { isActive: true })
+      .andWhere('assessment.isAssessed = :isAssessed', { isAssessed: true })
+      .andWhere('assessment.assessedAt BETWEEN :startOfWeek AND :endOfWeek', {
+        startOfWeek,
+        endOfWeek,
+      })
+      .getCount();
+
+    // Ratio positivo
+    const positiveAssessments = await this.assessmentsRepository
+      .createQueryBuilder('assessment')
+      .innerJoin('assessment.activity', 'activity')
+      .where('activity.subjectAssignmentId = :subjectAssignmentId', { subjectAssignmentId })
+      .andWhere('activity.isActive = :isActive', { isActive: true })
+      .andWhere('assessment.isAssessed = :isAssessed', { isAssessed: true })
+      .andWhere('assessment.value = :value', { value: 'happy' })
+      .getCount();
+
+    const totalAssessments = await this.assessmentsRepository
+      .createQueryBuilder('assessment')
+      .innerJoin('assessment.activity', 'activity')
+      .where('activity.subjectAssignmentId = :subjectAssignmentId', { subjectAssignmentId })
+      .andWhere('activity.isActive = :isActive', { isActive: true })
+      .andWhere('assessment.isAssessed = :isAssessed', { isAssessed: true })
+      .getCount();
+
+    // Última actividad
+    const lastActivity = await this.activitiesRepository.findOne({
+      where: { subjectAssignmentId, isActive: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      subjectAssignmentId,
+      subjectName: subjectAssignment.subject.name,
+      subjectCode: subjectAssignment.subject.code,
+      classGroupName: subjectAssignment.classGroup.name,
+      totalActivities,
+      activeActivities,
+      archivedActivities,
+      templatesCount,
+      pendingAssessments,
+      weekCompletedAssessments,
+      positiveRatio: totalAssessments > 0 ? Math.round((positiveAssessments / totalAssessments) * 100) : 0,
+      lastActivityDate: lastActivity?.createdAt,
+    };
+  }
+
+  // ==================== MÉTODOS AUXILIARES EXTENDIDOS ====================
+
+  private async verifyTeacherSubjectAssignmentAccess(teacherId: string, subjectAssignmentId: string): Promise<void> {
+    const assignment = await this.subjectAssignmentsRepository.findOne({
+      where: { id: subjectAssignmentId, teacher: { id: teacherId } },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenException('No tienes acceso a esta asignación de asignatura');
+    }
+  }
+
+  private async createAssessmentRecordsForActivity(
+    activityId: string,
+    subjectAssignmentId: string,
+    targetStudentIds?: string[]
+  ): Promise<void> {
+    const subjectAssignment = await this.subjectAssignmentsRepository.findOne({
+      where: { id: subjectAssignmentId },
+      relations: ['classGroup', 'classGroup.students'],
+    });
+
+    if (!subjectAssignment) {
+      throw new NotFoundException('Asignación de asignatura no encontrada');
+    }
+
+    let studentsToAssess = subjectAssignment.classGroup.students;
+
+    // Si se especificaron estudiantes específicos, filtrar
+    if (targetStudentIds && targetStudentIds.length > 0) {
+      studentsToAssess = studentsToAssess.filter(student => 
+        targetStudentIds.includes(student.id)
+      );
+    }
+
+    const assessmentRecords = studentsToAssess.map(student => 
+      this.assessmentsRepository.create({
+        activityId,
+        studentId: student.id,
+        isAssessed: false,
+      })
+    );
+
+    await this.assessmentsRepository.save(assessmentRecords);
   }
 }

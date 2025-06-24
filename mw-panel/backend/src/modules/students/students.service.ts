@@ -36,6 +36,19 @@ export class StudentsService {
     return student;
   }
 
+  async findByUserId(userId: string): Promise<Student> {
+    const student = await this.studentsRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user', 'user.profile', 'classGroup'],
+    });
+    
+    if (!student) {
+      throw new NotFoundException('Estudiante no encontrado');
+    }
+    
+    return student;
+  }
+
   async create(createStudentDto: any): Promise<Student> {
     const { email, password, firstName, lastName, phone, dni, enrollmentNumber, birthDate } = createStudentDto;
 
@@ -121,6 +134,28 @@ export class StudentsService {
     }
 
     return this.studentsRepository.save(student);
+  }
+
+  async changePassword(userId: string, changePasswordDto: any): Promise<{ message: string }> {
+    const { currentPassword, newPassword } = changePasswordDto;
+    
+    // Find student by userId
+    const student = await this.findByUserId(userId);
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, student.user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      throw new ConflictException('La contraseña actual es incorrecta');
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    student.user.passwordHash = hashedNewPassword;
+    await this.usersRepository.save(student.user);
+    
+    return { message: 'Contraseña actualizada exitosamente' };
   }
 
   async remove(id: string): Promise<void> {

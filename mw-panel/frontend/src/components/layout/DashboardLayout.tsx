@@ -13,6 +13,7 @@ import {
   BarChartOutlined,
   MessageOutlined,
   CalendarOutlined,
+  ProjectOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
@@ -299,6 +300,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             onClick: () => navigate('/teacher/activities'),
           },
           {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Tareas/Deberes',
+            onClick: () => navigate('/teacher/tasks'),
+          },
+          {
             key: 'evaluations',
             icon: <FileTextOutlined />,
             label: 'Evaluaciones',
@@ -322,6 +329,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       case UserRole.STUDENT:
         return [
           ...baseItems,
+          {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Mis Tareas',
+            onClick: () => navigate('/student/tasks'),
+          },
           {
             key: 'grades',
             icon: <FileTextOutlined />,
@@ -369,11 +382,33 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Actividades Diarias',
             onClick: () => navigate('/family/activities'),
           },
+          {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Tareas/Deberes',
+            onClick: () => navigate('/family/tasks'),
+          },
           createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]
 
       default:
         return baseItems
+    }
+  }
+
+  // Helper to get role-specific paths
+  const getRoleBasePath = () => {
+    switch (user?.role) {
+      case UserRole.ADMIN:
+        return '/admin'
+      case UserRole.TEACHER:
+        return '/teacher'
+      case UserRole.STUDENT:
+        return '/student'
+      case UserRole.FAMILY:
+        return '/family'
+      default:
+        return ''
     }
   }
 
@@ -383,13 +418,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       key: 'profile',
       icon: <UserOutlined />,
       label: 'Mi Perfil',
-      onClick: () => navigate('/profile'),
+      onClick: () => navigate(`${getRoleBasePath()}/profile`),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Configuración',
-      onClick: () => navigate('/settings'),
+      onClick: () => navigate(`${getRoleBasePath()}/settings`),
     },
     { type: 'divider' as const },
     {

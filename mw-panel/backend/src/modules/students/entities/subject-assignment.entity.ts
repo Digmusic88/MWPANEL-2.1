@@ -3,6 +3,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToOne,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,7 +17,11 @@ export class SubjectAssignment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'uuid' })
+  teacherId: string;
+
   @ManyToOne(() => Teacher)
+  @JoinColumn({ name: 'teacherId' })
   teacher: Teacher;
 
   @ManyToOne(() => Subject)

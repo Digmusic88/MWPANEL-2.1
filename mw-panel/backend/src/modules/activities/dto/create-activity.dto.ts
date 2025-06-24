@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum, IsBoolean, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum, IsBoolean, IsNumber, IsArray, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ActivityValuationType } from '../entities/activity.entity';
 
@@ -26,6 +26,11 @@ export class CreateActivityDto {
   @IsString()
   @IsNotEmpty()
   classGroupId: string;
+
+  @ApiProperty({ description: 'ID de la asignación de asignatura (obligatorio)' })
+  @IsString()
+  @IsNotEmpty()
+  subjectAssignmentId: string;
 
   @ApiProperty({ 
     description: 'Tipo de valoración', 
@@ -64,4 +69,15 @@ export class CreateActivityDto {
   @IsOptional()
   @IsBoolean()
   notifyOnSad?: boolean = true;
+
+  @ApiPropertyOptional({ description: 'IDs de estudiantes específicos (opcional, por defecto todo el grupo)' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  targetStudentIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Guardar como plantilla reutilizable', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isTemplate?: boolean = false;
 }

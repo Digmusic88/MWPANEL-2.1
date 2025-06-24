@@ -94,6 +94,34 @@ interface ClassGroup {
   name: string
 }
 
+interface SubjectAssignment {
+  id: string
+  subject: {
+    id: string
+    name: string
+    code: string
+  }
+  classGroup: {
+    id: string
+    name: string
+  }
+  academicYear: {
+    id: string
+    name: string
+  }
+  weeklyHours: number
+  students: Array<{
+    id: string
+    enrollmentNumber: string
+    user: {
+      profile: {
+        firstName: string
+        lastName: string
+      }
+    }
+  }>
+}
+
 interface ActivityStatistics {
   activityId: string
   activityName: string
@@ -125,11 +153,13 @@ const ActivitiesPage: React.FC = () => {
   // Estados principales
   const [activities, setActivities] = useState<Activity[]>([])
   const [classGroups, setClassGroups] = useState<ClassGroup[]>([])
+  const [subjectAssignments, setSubjectAssignments] = useState<SubjectAssignment[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedClassGroup, setSelectedClassGroup] = useState<string>()
   const [searchText, setSearchText] = useState('')
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
   const [summary, setSummary] = useState<TeacherSummary | null>(null)
+  const [targetStudents, setTargetStudents] = useState<string[]>([])
 
   // Estados de modales y formularios
   const [createModalVisible, setCreateModalVisible] = useState(false)
@@ -149,11 +179,32 @@ const ActivitiesPage: React.FC = () => {
   const [bulkValue, setBulkValue] = useState<string>('')
   const [bulkComment, setBulkComment] = useState<string>('')
 
+  // Estados para vista por asignaturas
+  const [viewMode, setViewMode] = useState<'list' | 'subjects'>('subjects')
+  const [subjectSummaries, setSubjectSummaries] = useState<any[]>([])
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
+  const [subjectActivities, setSubjectActivities] = useState<Activity[]>([])
+
   useEffect(() => {
-    fetchActivities()
-    fetchClassGroups()
+    if (viewMode === 'list') {
+      fetchActivities()
+      fetchClassGroups()
+    }
+    fetchSubjectAssignments()
     fetchTeacherSummary()
-  }, [selectedClassGroup, dateRange])
+  }, [selectedClassGroup, dateRange, viewMode])
+
+  useEffect(() => {
+    if (viewMode === 'subjects') {
+      fetchSubjectSummaries()
+    }
+  }, [viewMode])
+
+  useEffect(() => {
+    if (selectedSubjectId) {
+      fetchSubjectActivities(selectedSubjectId)
+    }
+  }, [selectedSubjectId])
 
   const fetchActivities = async () => {
     try {
@@ -188,12 +239,68 @@ const ActivitiesPage: React.FC = () => {
     }
   }
 
+  const fetchSubjectAssignments = async () => {
+    try {
+      const response = await apiClient.get('/activities/teacher/subject-assignments')
+      setSubjectAssignments(response.data)
+    } catch (error: any) {
+      console.error('Error fetching subject assignments:', error)
+    }
+  }
+
   const fetchTeacherSummary = async () => {
     try {
       const response = await apiClient.get('/activities/summary')
       setSummary(response.data)
     } catch (error: any) {
       console.error('Error fetching teacher summary:', error)
+    }
+  }
+
+  const fetchSubjectSummaries = async () => {
+    try {
+      setLoading(true)
+      const summariesPromises = subjectAssignments.map(async (assignment) => {
+        try {
+          const response = await apiClient.get(`/activities/subject/${assignment.id}/summary`)
+          return {
+            ...response.data,
+            assignment,
+          }
+        } catch (error) {
+          return {
+            assignment,
+            totalActivities: 0,
+            activeActivities: 0,
+            archivedActivities: 0,
+            templatesCount: 0,
+            pendingAssessments: 0,
+            weekCompletedAssessments: 0,
+            positiveRatio: 0,
+          }
+        }
+      })
+      
+      const summaries = await Promise.all(summariesPromises)
+      setSubjectSummaries(summaries)
+    } catch (error: any) {
+      console.error('Error fetching subject summaries:', error)
+      message.error('Error al cargar resúmenes de asignaturas')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSubjectActivities = async (subjectAssignmentId: string) => {
+    try {
+      setLoading(true)
+      const response = await apiClient.get(`/activities/subject/${subjectAssignmentId}`)
+      setSubjectActivities(response.data)
+    } catch (error: any) {
+      console.error('Error fetching subject activities:', error)
+      message.error('Error al cargar actividades de la asignatura')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -216,12 +323,14 @@ const ActivitiesPage: React.FC = () => {
         notifyOnHappy: values.notifyOnHappy ?? false,
         notifyOnNeutral: values.notifyOnNeutral ?? true,
         notifyOnSad: values.notifyOnSad ?? true,
+        targetStudentIds: targetStudents.length > 0 ? targetStudents : undefined,
       }
 
       await apiClient.post('/activities', activityData)
       message.success('Actividad creada exitosamente')
       setCreateModalVisible(false)
       createForm.resetFields()
+      setTargetStudents([])
       fetchActivities()
       fetchTeacherSummary()
     } catch (error: any) {
@@ -517,41 +626,73 @@ const ActivitiesPage: React.FC = () => {
         </Row>
       )}
 
-      {/* Controles y filtros */}
+      {/* Selector de vista y controles */}
       <Card className="mb-4">
         <Row gutter={16} align="middle">
-          <Col xs={24} md={8}>
-            <Input
-              placeholder="Buscar actividades..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </Col>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Filtrar por grupo"
-              allowClear
-              value={selectedClassGroup}
-              onChange={setSelectedClassGroup}
+          <Col xs={24} md={4}>
+            <Radio.Group 
+              value={viewMode} 
+              onChange={(e) => setViewMode(e.target.value)}
+              buttonStyle="solid"
               className="w-full"
             >
-              {classGroups.map(group => (
-                <Option key={group.id} value={group.id}>
-                  {group.name}
-                </Option>
-              ))}
-            </Select>
+              <Radio.Button value="list" className="w-1/2 text-center">
+                Lista
+              </Radio.Button>
+              <Radio.Button value="subjects" className="w-1/2 text-center">
+                Asignaturas
+              </Radio.Button>
+            </Radio.Group>
           </Col>
-          <Col xs={24} md={6}>
-            <DatePicker.RangePicker
-              value={dateRange}
-              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
-              format="DD/MM/YYYY"
-              placeholder={['Fecha inicio', 'Fecha fin']}
-              className="w-full"
-            />
-          </Col>
+          
+          {viewMode === 'list' && (
+            <>
+              <Col xs={24} md={6}>
+                <Input
+                  placeholder="Buscar actividades..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </Col>
+              <Col xs={24} md={5}>
+                <Select
+                  placeholder="Filtrar por grupo"
+                  allowClear
+                  value={selectedClassGroup}
+                  onChange={setSelectedClassGroup}
+                  className="w-full"
+                >
+                  {classGroups.map(group => (
+                    <Option key={group.id} value={group.id}>
+                      {group.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} md={5}>
+                <DatePicker.RangePicker
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+                  format="DD/MM/YYYY"
+                  placeholder={['Fecha inicio', 'Fecha fin']}
+                  className="w-full"
+                />
+              </Col>
+            </>
+          )}
+          
+          {viewMode === 'subjects' && selectedSubjectId && (
+            <Col xs={24} md={16}>
+              <Button
+                type="default"
+                onClick={() => setSelectedSubjectId(null)}
+              >
+                ← Volver a asignaturas
+              </Button>
+            </Col>
+          )}
+          
           <Col xs={24} md={4}>
             <Button
               type="primary"
@@ -565,23 +706,121 @@ const ActivitiesPage: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Tabla de actividades */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={filteredActivities}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            total: filteredActivities.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} de ${total} actividades`,
-          }}
-        />
-      </Card>
+      {/* Vista por lista */}
+      {viewMode === 'list' && (
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={filteredActivities}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              total: filteredActivities.length,
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => 
+                `${range[0]}-${range[1]} de ${total} actividades`,
+            }}
+          />
+        </Card>
+      )}
+
+      {/* Vista por asignaturas */}
+      {viewMode === 'subjects' && !selectedSubjectId && (
+        <Row gutter={16}>
+          {subjectSummaries.map((summary) => (
+            <Col key={summary.assignment.id} xs={24} sm={12} lg={8} xl={6} className="mb-4">
+              <Card
+                hoverable
+                onClick={() => setSelectedSubjectId(summary.assignment.id)}
+                className="subject-card h-full"
+              >
+                <div className="text-center">
+                  <Avatar
+                    size={64}
+                    style={{ 
+                      backgroundColor: '#1890ff',
+                      fontSize: '24px',
+                      marginBottom: '16px'
+                    }}
+                    icon={<BookOutlined />}
+                  />
+                  <Title level={4} className="mb-2">
+                    {summary.assignment.subject.name}
+                  </Title>
+                  <Text type="secondary" className="block mb-3">
+                    {summary.assignment.subject.code} • {summary.assignment.classGroup.name}
+                  </Text>
+                  
+                  <Row gutter={8} className="text-center">
+                    <Col span={12}>
+                      <Statistic
+                        title="Actividades"
+                        value={summary.activeActivities}
+                        valueStyle={{ fontSize: '16px' }}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="Pendientes"
+                        value={summary.pendingAssessments}
+                        valueStyle={{ fontSize: '16px', color: '#faad14' }}
+                      />
+                    </Col>
+                  </Row>
+                  
+                  <div className="mt-3">
+                    <Progress
+                      percent={Math.round(summary.positiveRatio || 0)}
+                      size="small"
+                      strokeColor="#52c41a"
+                      format={(percent) => `${percent}% positivo`}
+                    />
+                  </div>
+                  
+                  {summary.templatesCount > 0 && (
+                    <Badge
+                      count={`${summary.templatesCount} plantillas`}
+                      style={{ backgroundColor: '#722ed1' }}
+                      className="mt-2"
+                    />
+                  )}
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
+
+      {/* Vista de actividades de una asignatura específica */}
+      {viewMode === 'subjects' && selectedSubjectId && (
+        <Card
+          title={
+            <div className="flex items-center gap-3">
+              <BookOutlined />
+              <span>
+                {subjectSummaries.find(s => s.assignment.id === selectedSubjectId)?.assignment.subject.name}
+              </span>
+            </div>
+          }
+        >
+          <Table
+            columns={columns}
+            dataSource={subjectActivities}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              total: subjectActivities.length,
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => 
+                `${range[0]}-${range[1]} de ${total} actividades`,
+            }}
+          />
+        </Card>
+      )}
 
       {/* Modal crear actividad */}
       <Modal
@@ -628,21 +867,37 @@ const ActivitiesPage: React.FC = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item
-                name="classGroupId"
-                label="Grupo de Clase"
-                rules={[{ required: true, message: 'Selecciona un grupo' }]}
+                name="subjectAssignmentId"
+                label="Asignatura"
+                rules={[{ required: true, message: 'Selecciona una asignatura' }]}
               >
-                <Select placeholder="Seleccionar grupo">
-                  {classGroups.map(group => (
-                    <Option key={group.id} value={group.id}>
-                      {group.name}
+                <Select 
+                  placeholder="Seleccionar asignatura"
+                  onChange={(value) => {
+                    const assignment = subjectAssignments.find(a => a.id === value)
+                    if (assignment) {
+                      createForm.setFieldsValue({ classGroupId: assignment.classGroup.id })
+                    }
+                  }}
+                >
+                  {subjectAssignments.map(assignment => (
+                    <Option key={assignment.id} value={assignment.id}>
+                      <div>
+                        <strong>{assignment.subject.name}</strong> ({assignment.subject.code})
+                        <br />
+                        <Text type="secondary">{assignment.classGroup.name}</Text>
+                      </div>
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
             </Col>
+
+            <Form.Item name="classGroupId" hidden>
+              <Input />
+            </Form.Item>
 
             <Col span={12}>
               <Form.Item
@@ -678,6 +933,50 @@ const ActivitiesPage: React.FC = () => {
                 </Radio.Group>
               </Form.Item>
             </Col>
+
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.subjectAssignmentId !== curr.subjectAssignmentId}>
+              {({ getFieldValue }) => {
+                const assignmentId = getFieldValue('subjectAssignmentId')
+                const assignment = subjectAssignments.find(a => a.id === assignmentId)
+                
+                return assignment && (
+                  <Col span={24}>
+                    <Form.Item label="Estudiantes (opcional - por defecto todos)">
+                      <Checkbox.Group
+                        value={targetStudents}
+                        onChange={setTargetStudents}
+                        className="w-full"
+                      >
+                        <Row gutter={[8, 8]}>
+                          {assignment.students.map(student => (
+                            <Col key={student.id} span={12}>
+                              <Checkbox value={student.id}>
+                                {student.user.profile.firstName} {student.user.profile.lastName}
+                              </Checkbox>
+                            </Col>
+                          ))}
+                        </Row>
+                      </Checkbox.Group>
+                      <div className="mt-2">
+                        <Button 
+                          size="small" 
+                          onClick={() => setTargetStudents(assignment.students.map(s => s.id))}
+                        >
+                          Seleccionar todos
+                        </Button>
+                        <Button 
+                          size="small" 
+                          style={{ marginLeft: 8 }}
+                          onClick={() => setTargetStudents([])}
+                        >
+                          Limpiar selección
+                        </Button>
+                      </div>
+                    </Form.Item>
+                  </Col>
+                )
+              }}
+            </Form.Item>
 
             <Form.Item noStyle shouldUpdate={(prev, curr) => prev.valuationType !== curr.valuationType}>
               {({ getFieldValue }) => 

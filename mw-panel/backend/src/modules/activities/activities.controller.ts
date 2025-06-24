@@ -17,6 +17,9 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { AssessActivityDto, BulkAssessActivityDto, AssessmentResponseDto } from './dto/assess-activity.dto';
 import { ActivityStatisticsDto, TeacherActivitySummaryDto } from './dto/activity-statistics.dto';
+import { SubjectAssignmentWithStudentsDto } from './dto/subject-assignment-with-students.dto';
+import { CreateFromTemplateDto } from './dto/activity-template.dto';
+import { SubjectActivitySummaryDto } from './dto/subject-activity-summary.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -161,6 +164,77 @@ export class ActivitiesController {
   ): Promise<ActivityStatisticsDto> {
     const userId = req.user.sub;
     return this.activitiesService.getActivityStatisticsByUserId(id, userId);
+  }
+
+  // ==================== ENDPOINTS POR ASIGNATURAS ====================
+
+  @Get('teacher/subject-assignments')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener asignaciones de asignaturas del profesor' })
+  @ApiResponse({ status: 200, description: 'Lista de asignaciones con estudiantes', type: [SubjectAssignmentWithStudentsDto] })
+  async getTeacherSubjectAssignments(@Request() req: any): Promise<SubjectAssignmentWithStudentsDto[]> {
+    const userId = req.user.sub;
+    return this.activitiesService.getTeacherSubjectAssignmentsByUserId(userId);
+  }
+
+  @Get('subject/:subjectAssignmentId')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener actividades por asignación de asignatura' })
+  @ApiQuery({ name: 'includeArchived', required: false, description: 'Incluir actividades archivadas' })
+  @ApiResponse({ status: 200, description: 'Lista de actividades de la asignatura', type: [Activity] })
+  async findActivitiesBySubjectAssignment(
+    @Param('subjectAssignmentId', ParseUUIDPipe) subjectAssignmentId: string,
+    @Request() req: any,
+    @Query('includeArchived') includeArchived?: boolean,
+  ): Promise<Activity[]> {
+    const userId = req.user.sub;
+    return this.activitiesService.findActivitiesBySubjectAssignmentUserId(subjectAssignmentId, userId, includeArchived === true);
+  }
+
+  @Get('subject/:subjectAssignmentId/summary')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Resumen de actividades por asignatura' })
+  @ApiResponse({ status: 200, description: 'Resumen de la asignatura', type: SubjectActivitySummaryDto })
+  async getSubjectActivitySummary(
+    @Param('subjectAssignmentId', ParseUUIDPipe) subjectAssignmentId: string,
+    @Request() req: any,
+  ): Promise<SubjectActivitySummaryDto> {
+    const userId = req.user.sub;
+    return this.activitiesService.getSubjectActivitySummaryByUserId(subjectAssignmentId, userId);
+  }
+
+  @Get('templates')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener plantillas de actividades del profesor' })
+  @ApiResponse({ status: 200, description: 'Lista de plantillas', type: [Activity] })
+  async getTeacherTemplates(@Request() req: any): Promise<Activity[]> {
+    const userId = req.user.sub;
+    return this.activitiesService.getTeacherTemplatesByUserId(userId);
+  }
+
+  @Post('create-from-template')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Crear actividad desde plantilla' })
+  @ApiResponse({ status: 201, description: 'Actividad creada desde plantilla', type: Activity })
+  @ApiResponse({ status: 404, description: 'Plantilla no encontrada' })
+  async createFromTemplate(
+    @Body() createFromTemplateDto: CreateFromTemplateDto,
+    @Request() req: any,
+  ): Promise<Activity> {
+    const userId = req.user.sub;
+    return this.activitiesService.createFromTemplateByUserId(createFromTemplateDto, userId);
+  }
+
+  @Patch(':id/archive')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Archivar/desarchivar actividad' })
+  @ApiResponse({ status: 200, description: 'Estado actualizado', type: Activity })
+  async toggleArchive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ): Promise<Activity> {
+    const userId = req.user.sub;
+    return this.activitiesService.toggleArchiveByUserId(id, userId);
   }
 
   // ==================== ENDPOINTS PARA FAMILIAS ====================

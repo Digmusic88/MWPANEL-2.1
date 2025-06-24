@@ -5,6 +5,7 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -40,10 +41,18 @@ export class FamilyStudent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'uuid' })
+  familyId: string;
+
   @ManyToOne(() => Family)
+  @JoinColumn({ name: 'familyId' })
   family: Family;
 
+  @Column({ type: 'uuid' })
+  studentId: string;
+
   @ManyToOne(() => Student)
+  @JoinColumn({ name: 'studentId' })
   student: Student;
 
   @Column({

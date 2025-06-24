@@ -26,6 +26,16 @@ import { UserRole } from '../users/entities/user.entity';
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
 
+  @Get('me')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener datos del profesor logueado' })
+  @ApiResponse({ status: 200, description: 'Datos del profesor' })
+  @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
+  getMe(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.teachersService.findByUserId(userId);
+  }
+
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Crear un nuevo profesor' })
