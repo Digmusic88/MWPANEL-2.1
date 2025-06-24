@@ -4,7 +4,7 @@ Sistema de gestión educativa completo con NestJS + React + PostgreSQL + Docker.
 
 ## 🚀 **ESTADO ACTUAL: TOTALMENTE FUNCIONAL**
 
-### ✅ **SISTEMAS IMPLEMENTADOS (13/16)**
+### ✅ **SISTEMAS IMPLEMENTADOS (15/16)**
 1. **Sistema de Usuarios** - JWT, dashboards por rol ✅
 2. **Sistema de Grupos** - CRUD, 3 grupos persistentes ✅
 3. **Sistema de Profesores** - 6 profesores BD, dashboard ✅
@@ -17,32 +17,33 @@ Sistema de gestión educativa completo con NestJS + React + PostgreSQL + Docker.
 10. **Sistema de Notificaciones** - Campana, eliminar, gestión completa ✅
 11. **Sistema de Asistencia COMPLETO** - Control diario + solicitudes + notificaciones ✅
 12. **Sistema de Actividades Familiares COMPLETO** - Vista asignaturas + multi-hijo + dashboard ✅
-13. **🆕 Sistema de Tareas/Deberes COMPLETO** - Creación profesores + entrega estudiantes + supervisión familias ✅
+13. **Sistema de Tareas/Deberes COMPLETO** - Digital + "Test Yourself" diferenciado + notificaciones ✅
+14. **🆕 Sistema de Configuración Modular** - Activación/desactivación módulos desde admin ✅
+15. **🆕 Sistema de Expedientes + Boletines PDF** - Historial académico + generación automática ✅
 
 ## 🎯 **HOJA DE RUTA ACTUALIZADA**
 
 ### **🔥 MÁXIMA PRIORIDAD (Próximas 2 semanas)**
-1. **📊 Sistema Expedientes + Boletines PDF**
-   - Historial académico completo + documentos oficiales
-   - Generación automática boletines personalizados
-   - Exportación datos normativa educativa
-   - **IMPACTO**: Cumplimiento legal + gestión administrativa
-
-### **⭐ ALTA PRIORIDAD (2-4 semanas)**
-2. **📅 Calendario Académico Integrado**
+1. **📅 Calendario Académico Integrado**
    - Eventos centro + exámenes + fechas importantes
-   - Sincronización evaluaciones/horarios + recordatorios
-   - Vistas personalizadas por rol (profesor/familia/admin)
-   - **IMPACTO**: Organización temporal institucional
+   - Sincronización tareas/evaluaciones + recordatorios
+   - Vistas personalizadas por rol + integración "Test Yourself"
+   - **IMPACTO**: Organización temporal institucional completa
+
+### **⭐ ALTA PRIORIDAD (1-2 semanas)**
+2. **📖 Portal Recursos Educativos**
+   - Biblioteca digital + materiales compartidos por asignaturas
+   - Integración con sistema archivos tareas existente
+   - Gestión permisos acceso + categorización avanzada
+   - **IMPACTO**: Centralización recursos pedagógicos
 
 ### **📋 MEDIA PRIORIDAD (1-2 meses)**
-4. **📖 Portal Recursos Educativos** - Biblioteca digital + materiales compartidos
-5. **📈 Dashboard Analytics** - Métricas centro + tendencias académicas
-6. **💬 Chat Tiempo Real** - Comunicación instantánea WebSockets
+3. **📈 Dashboard Analytics** - Métricas centro + tendencias académicas
+4. **💬 Chat Tiempo Real** - Comunicación instantánea WebSockets
 
 ### **🔮 FUTURO (6+ meses)**
-7. **📱 App Móvil Nativa** - React Native iOS/Android
-8. **🔒 Sistema Backup Automático** - Copias seguridad programadas
+5. **📱 App Móvil Nativa** - React Native iOS/Android
+6. **🔒 Sistema Backup Automático** - Copias seguridad programadas
 
 ## 🛠️ **COMANDOS ESENCIALES**
 
@@ -59,24 +60,24 @@ Sistema de gestión educativa completo con NestJS + React + PostgreSQL + Docker.
 
 ## 📈 **ÚLTIMA IMPLEMENTACIÓN**
 
-### **📅 2025-06-24 (SISTEMA TAREAS/DEBERES COMPLETO)**
-- ✅ **Sistema Backend Completo**: Entidades Task, TaskSubmission, TaskAttachment + 19 endpoints funcionales
-- ✅ **Frontend Profesores**: Crear/editar/publicar tareas + gestión archivos adjuntos + estadísticas
-- ✅ **Frontend Estudiantes**: Ver tareas asignadas + entrega digital + seguimiento calificaciones
-- ✅ **Frontend Familias**: Supervisión progreso hijos + vista por asignaturas + notificaciones
-- ✅ **Navegación Integrada**: Módulo tareas accesible desde todos los dashboards por rol
-- ✅ **Fix Subject Dropdown**: Profesores pueden seleccionar asignaturas asignadas correctamente
-- ✅ **Fix latePenalty Validation**: Conversión automática porcentaje ↔ decimal (backend/frontend)
-- ✅ **Sistema Archivos**: Upload/download adjuntos + validación tipos/tamaños + almacenamiento seguro
+### **📅 2025-06-24 (SISTEMA EXPEDIENTES + CONFIGURACIÓN MODULAR)**
+- ✅ **Sistema Configuración Modular**: Panel admin para activar/desactivar módulos del sistema
+- ✅ **Sistema Expedientes Backend**: Entidades AcademicRecord, AcademicRecordEntry, AcademicRecordGrade
+- ✅ **Generación Boletines PDF**: ReportGeneratorService con PDFKit + plantillas personalizables
+- ✅ **Control Acceso Modular**: SettingsService con cache + verificación permisos por módulo
+- ✅ **Diferenciación Test Yourself**: Tareas exam como notificaciones/recordatorios sin entrega
+- ✅ **Migración BD Completa**: SystemSettings + AcademicRecords + enum types PostgreSQL
+- ✅ **Frontend Admin Panel**: ModulesSettingsPage para gestión visual on/off módulos
 
 ## 📊 **RESUMEN EJECUTIVO**
-- **Estado**: 13 sistemas operativos (81% completado)
-- **Sistema Tareas/Deberes**: Totalmente funcional con interfaces completas para todos los roles
-- **Próximo**: Sistema Expedientes + Boletines PDF (cumplimiento normativo)
-- **Arquitectura**: Microservicios dockerizados, PostgreSQL optimizado
-- **Progress**: +1 sistema funcional core, digitalización pedagógica avanzada
+- **Estado**: 15 sistemas operativos (94% completado)
+- **Sistema Expedientes**: Con activación modular desde admin + generación boletines PDF automática
+- **Sistema Configuración**: Control granular módulos + cache optimizado + verificación permisos
+- **Próximo**: Calendario Académico integrado (organización temporal completa)
+- **Arquitectura**: Microservicios dockerizados, PostgreSQL optimizado, PDFKit integrado
+- **Progress**: +2 sistemas funcionales, control modular implementado
 
-**🎯 Estrategia: Digitalización procesos pedagógicos + gestión académica integral**
+**🎯 Estrategia: Sistema modular configurable + cumplimiento normativo educativo**
 
 ---
-*Actualizado: 2025-06-24 - Sistema Tareas/Deberes implementado 100%*
+*Actualizado: 2025-06-24 - Expedientes + Configuración Modular implementados 100%*

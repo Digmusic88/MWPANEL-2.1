@@ -44,6 +44,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { Task, TaskSubmission } from './entities';
 
@@ -219,6 +220,18 @@ export class TasksController {
     return this.tasksService.remove(id, req.user.sub);
   }
 
+  @Get('submissions/:submissionId')
+  @Roles(UserRole.TEACHER, UserRole.STUDENT, UserRole.FAMILY)
+  @ApiOperation({ summary: 'Obtener detalles de una entrega específica' })
+  @ApiResponse({ status: 200, description: 'Detalles de la entrega', type: TaskSubmission })
+  @ApiResponse({ status: 404, description: 'Entrega no encontrada' })
+  async getSubmission(
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+    @Request() req,
+  ): Promise<TaskSubmission> {
+    return this.tasksService.getSubmission(submissionId, req.user.sub);
+  }
+
   @Post('submissions/:submissionId/grade')
   @Roles(UserRole.TEACHER)
   @ApiOperation({ summary: 'Calificar entrega de estudiante' })
@@ -342,7 +355,70 @@ export class TasksController {
   @ApiOperation({ summary: 'Obtener estadísticas generales del sistema (solo admin)' })
   @ApiResponse({ status: 200, description: 'Estadísticas generales del sistema' })
   async getSystemStatistics() {
-    // TODO: Implementar estadísticas generales
-    return { message: 'Endpoint en desarrollo' };
+    return this.tasksService.getSystemStatistics();
+  }
+
+  @Get('teacher/advanced-statistics')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener estadísticas avanzadas del profesor' })
+  @ApiResponse({ status: 200, description: 'Estadísticas avanzadas con seguimiento detallado' })
+  async getAdvancedTeacherStatistics(@Request() req) {
+    return this.tasksService.getAdvancedTeacherStatistics(req.user.sub);
+  }
+
+  @Get('teacher/:id/submissions/analytics')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener analytics de entregas de una tarea específica' })
+  @ApiResponse({ status: 200, description: 'Analytics detallados de la tarea' })
+  async getTaskSubmissionAnalytics(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    return this.tasksService.getTaskSubmissionAnalytics(id, req.user.sub);
+  }
+
+  @Get('teacher/pending-grading')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener tareas pendientes de calificar' })
+  @ApiResponse({ status: 200, description: 'Lista de entregas pendientes de calificar' })
+  async getPendingGrading(@Request() req) {
+    return this.tasksService.getPendingGrading(req.user.sub);
+  }
+
+  // ENDPOINT TEMPORAL PARA TESTING SIN AUTH  
+  @Get('test/pending-grading')
+  @Public()
+  @ApiOperation({ summary: 'TEST: Obtener tareas pendientes de calificar sin auth' })
+  async getTestPendingGrading() {
+    // Usar teacherId conocido directamente (profesor@mwpanel.com)
+    return this.tasksService.getTestPendingGrading();
+  }
+
+  @Get('test/submission/:submissionId')
+  @Public()
+  @ApiOperation({ summary: 'TEST: Obtener submission sin auth' })
+  async getTestSubmission(
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+  ) {
+    return this.tasksService.getTestSubmission(submissionId);
+  }
+
+  @Get('teacher/overdue-tasks')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener tareas vencidas sin entregar' })
+  @ApiResponse({ status: 200, description: 'Lista de tareas vencidas' })
+  async getOverdueTasks(@Request() req) {
+    return this.tasksService.getOverdueTasks(req.user.sub);
+  }
+
+  @Post('teacher/bulk-reminder')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Enviar recordatorios masivos para tareas' })
+  @ApiResponse({ status: 200, description: 'Recordatorios enviados' })
+  async sendBulkReminders(
+    @Body() body: { taskIds: string[], message?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.sendBulkReminders(body.taskIds, req.user.sub, body.message);
   }
 }

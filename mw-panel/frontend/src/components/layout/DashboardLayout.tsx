@@ -306,6 +306,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             onClick: () => navigate('/teacher/tasks'),
           },
           {
+            key: 'tasks-dashboard',
+            icon: <BarChartOutlined />,
+            label: 'Dashboard Tareas',
+            onClick: () => navigate('/teacher/tasks-dashboard'),
+          },
+          {
             key: 'evaluations',
             icon: <FileTextOutlined />,
             label: 'Evaluaciones',

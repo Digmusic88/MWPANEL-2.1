@@ -38,10 +38,12 @@ import {
   ClockCircleOutlined,
   SendOutlined,
   UserOutlined,
+  PaperClipOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import apiClient from '@services/apiClient';
+import TaskAttachmentManager from './TaskAttachmentManager';
 import {
   Task,
   TaskStatus,
@@ -88,6 +90,8 @@ const TasksPage: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [attachmentTaskId, setAttachmentTaskId] = useState<string | null>(null);
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
   
@@ -249,6 +253,16 @@ const TasksPage: React.FC = () => {
     setDetailDrawerVisible(true);
   };
 
+  const openAttachmentModal = (taskId: string) => {
+    setAttachmentTaskId(taskId);
+    setAttachmentModalVisible(true);
+  };
+
+  const closeAttachmentModal = () => {
+    setAttachmentModalVisible(false);
+    setAttachmentTaskId(null);
+  };
+
   const getSubmissionProgress = (task: Task) => {
     const total = task.submissions.length;
     const submitted = task.submissions.filter(s => s.status !== 'not_submitted').length;
@@ -369,6 +383,14 @@ const TasksPage: React.FC = () => {
               type="text" 
               icon={<EditOutlined />} 
               onClick={() => openEditModal(record)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Archivos Adjuntos">
+            <Button 
+              type="text" 
+              icon={<PaperClipOutlined />} 
+              onClick={() => openAttachmentModal(record.id)}
             />
           </Tooltip>
 
@@ -1023,6 +1045,19 @@ const TasksPage: React.FC = () => {
           </div>
         )}
       </Drawer>
+
+      {/* Task Attachments Manager */}
+      {attachmentTaskId && (
+        <TaskAttachmentManager
+          taskId={attachmentTaskId}
+          isVisible={attachmentModalVisible}
+          onClose={closeAttachmentModal}
+          onAttachmentChange={() => {
+            // Optionally refresh tasks list or update specific task
+            fetchTasks();
+          }}
+        />
+      )}
     </div>
   );
 };
