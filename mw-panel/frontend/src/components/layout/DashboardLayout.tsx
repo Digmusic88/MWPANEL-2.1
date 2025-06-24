@@ -12,12 +12,15 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   MessageOutlined,
+  CalendarOutlined,
+  ProjectOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
 import { useLocation, useNavigate } from 'react-router-dom'
 import NotificationCenter from '../NotificationCenter'
 import { useUnreadMessages } from '../../hooks/useUnreadMessages'
+import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -32,6 +35,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { unreadCount } = useUnreadMessages()
+  const { pendingCount } = usePendingAttendanceRequests()
 
   // Helper para crear item de menú con badge
   const createMessageMenuItem = (key: string, label: string, path: string) => ({
@@ -64,6 +68,50 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             size="small" 
             style={{ 
               backgroundColor: '#ff4d4f',
+              fontSize: '11px',
+              height: '18px',
+              minWidth: '18px',
+              lineHeight: '18px',
+              borderRadius: '9px'
+            }}
+          />
+        )}
+      </div>
+    ),
+    onClick: () => navigate(path),
+  })
+
+  // Helper para crear item de menú de asistencia con badge
+  const createAttendanceMenuItem = (key: string, label: string, path: string) => ({
+    key,
+    icon: collapsed ? (
+      <Badge 
+        count={pendingCount} 
+        size="small" 
+        offset={[8, 8]}
+        style={{ 
+          backgroundColor: '#faad14',
+          fontSize: '10px',
+          height: '16px',
+          minWidth: '16px',
+          lineHeight: '16px',
+          borderRadius: '8px'
+        }}
+      >
+        <CalendarOutlined />
+      </Badge>
+    ) : (
+      <CalendarOutlined />
+    ),
+    label: (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{label}</span>
+        {!collapsed && pendingCount > 0 && (
+          <Badge 
+            count={pendingCount} 
+            size="small" 
+            style={{ 
+              backgroundColor: '#faad14',
               fontSize: '11px',
               height: '18px',
               minWidth: '18px',
@@ -244,6 +292,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Mi Horario',
             onClick: () => navigate('/teacher/schedule'),
           },
+          createAttendanceMenuItem('attendance', 'Control de Asistencia', '/teacher/attendance'),
+          {
+            key: 'activities',
+            icon: <BarChartOutlined />,
+            label: 'Actividades Diarias',
+            onClick: () => navigate('/teacher/activities'),
+          },
+          {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Tareas/Deberes',
+            onClick: () => navigate('/teacher/tasks'),
+          },
           {
             key: 'evaluations',
             icon: <FileTextOutlined />,
@@ -268,6 +329,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       case UserRole.STUDENT:
         return [
           ...baseItems,
+          {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Mis Tareas',
+            onClick: () => navigate('/student/tasks'),
+          },
           {
             key: 'grades',
             icon: <FileTextOutlined />,
@@ -303,11 +370,45 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Calificaciones',
             onClick: () => navigate('/family/grades'),
           },
+          {
+            key: 'attendance',
+            icon: <CalendarOutlined />,
+            label: 'Asistencia',
+            onClick: () => navigate('/family/attendance'),
+          },
+          {
+            key: 'activities',
+            icon: <BookOutlined />,
+            label: 'Actividades Diarias',
+            onClick: () => navigate('/family/activities'),
+          },
+          {
+            key: 'tasks',
+            icon: <ProjectOutlined />,
+            label: 'Tareas/Deberes',
+            onClick: () => navigate('/family/tasks'),
+          },
           createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]
 
       default:
         return baseItems
+    }
+  }
+
+  // Helper to get role-specific paths
+  const getRoleBasePath = () => {
+    switch (user?.role) {
+      case UserRole.ADMIN:
+        return '/admin'
+      case UserRole.TEACHER:
+        return '/teacher'
+      case UserRole.STUDENT:
+        return '/student'
+      case UserRole.FAMILY:
+        return '/family'
+      default:
+        return ''
     }
   }
 
@@ -317,13 +418,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       key: 'profile',
       icon: <UserOutlined />,
       label: 'Mi Perfil',
-      onClick: () => navigate('/profile'),
+      onClick: () => navigate(`${getRoleBasePath()}/profile`),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Configuración',
-      onClick: () => navigate('/settings'),
+      onClick: () => navigate(`${getRoleBasePath()}/settings`),
     },
     { type: 'divider' as const },
     {

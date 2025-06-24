@@ -132,6 +132,36 @@ export const seedUsers = async (dataSource: DataSource): Promise<void> => {
         dni: '01234567K',
       },
     },
+    // Nuevos usuarios creados por Claude
+    {
+      email: 'lucia.morales@mwpanel.com',
+      password: 'Estudiante123!',
+      role: UserRole.STUDENT,
+      profile: {
+        firstName: 'Lucía',
+        lastName: 'Morales Castro',
+        phone: '+34 600 000 012',
+        dni: '12345678L',
+        dateOfBirth: new Date('2010-03-15'),
+        guardianName: 'Roberto Morales',
+        guardianPhone: '+34 600 000 013',
+        address: 'Calle de la Educación, 25, Madrid',
+        emergencyContact: 'Ana Castro (Madre) - +34 600 000 014',
+      },
+    },
+    {
+      email: 'roberto.morales@mwpanel.com',
+      password: 'Familia123!',
+      role: UserRole.FAMILY,
+      profile: {
+        firstName: 'Roberto',
+        lastName: 'Morales Jiménez',
+        phone: '+34 600 000 013',
+        dni: '23456789M',
+        dateOfBirth: new Date('1985-11-22'),
+        address: 'Calle de la Educación, 25, Madrid',
+      },
+    },
   ];
 
   for (const userData of users) {

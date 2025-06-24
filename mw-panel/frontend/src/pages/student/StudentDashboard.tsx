@@ -1,5 +1,8 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
+import TasksPage from './TasksPage'
+import ProfilePage from './ProfilePage'
+import SettingsPage from './SettingsPage'
 import { Card, Row, Col, Statistic, Typography, Space, Progress, List, Avatar } from 'antd'
 import {
   TrophyOutlined,
@@ -238,7 +241,9 @@ const StudentDashboard: React.FC = () => {
   return (
     <Routes>
       <Route index element={<StudentDashboardHome />} />
-      {/* Add more student routes here */}
+      <Route path="tasks" element={<TasksPage />} />
+      <Route path="profile" element={<ProfilePage />} />
+      <Route path="settings" element={<SettingsPage />} />
     </Routes>
   )
 }

@@ -28,30 +28,119 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
+      {/* Aurora Background Effect */}
       <div className="absolute inset-0 overflow-hidden">
+        {/* Aurora Layers */}
         <motion.div
-          className="absolute -top-4 -right-4 w-96 h-96 bg-blue-100 rounded-full opacity-20"
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+              radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+              radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)
+            `
+          }}
           animate={{
-            scale: [1, 1.1, 1],
-            rotate: [0, 90, 0],
+            background: [
+              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 30% 10%, rgba(72, 158, 157, 0.22) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 70% 90%, rgba(197, 221, 195, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 20% 70%, rgba(72, 158, 157, 0.16) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 60% 20%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 40% 80%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 80% 40%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`,
+              `radial-gradient(ellipse 800px 400px at 0% 0%, rgba(72, 158, 157, 0.18) 0%, transparent 50%),
+               radial-gradient(ellipse 600px 300px at 100% 100%, rgba(197, 221, 195, 0.15) 0%, transparent 50%),
+               radial-gradient(ellipse 400px 200px at 50% 50%, rgba(72, 158, 157, 0.12) 0%, transparent 50%)`
+            ]
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Aurora Particles */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full opacity-40"
+          style={{ backgroundColor: '#489e9d' }}
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+            opacity: [0.4, 0.8, 0.4],
+            scale: [1, 1.5, 1]
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-3/4 right-1/3 w-1 h-1 rounded-full opacity-50"
+          style={{ backgroundColor: '#c5ddc3' }}
+          animate={{
+            x: [0, -80, 0],
+            y: [0, 30, 0],
+            opacity: [0.5, 1, 0.5],
+            scale: [1, 2, 1]
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-1/4 w-1.5 h-1.5 rounded-full opacity-60"
+          style={{ backgroundColor: '#489e9d' }}
+          animate={{
+            x: [0, -60, 0],
+            y: [0, -80, 0],
+            opacity: [0.6, 0.9, 0.6],
+            scale: [1, 1.8, 1]
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Animated Orbs */}
+        <motion.div
+          className="absolute -top-4 -right-4 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background: `linear-gradient(135deg, rgba(72, 158, 157, 0.2) 0%, rgba(197, 221, 195, 0.15) 100%)`
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360],
+            opacity: [0.3, 0.6, 0.3]
           }}
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: "easeInOut"
           }}
         />
         <motion.div
-          className="absolute -bottom-4 -left-4 w-96 h-96 bg-indigo-100 rounded-full opacity-20"
+          className="absolute -bottom-4 -left-4 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background: `linear-gradient(315deg, rgba(197, 221, 195, 0.2) 0%, rgba(72, 158, 157, 0.18) 100%)`
+          }}
           animate={{
-            scale: [1.1, 1, 1.1],
-            rotate: [0, -90, 0],
+            scale: [1.2, 1, 1.2],
+            rotate: [360, 180, 0],
+            opacity: [0.4, 0.7, 0.4]
           }}
           transition={{
             duration: 25,
             repeat: Infinity,
-            ease: "linear"
+            ease: "easeInOut"
           }}
         />
       </div>
@@ -77,7 +166,12 @@ const LoginPage: React.FC = () => {
           </motion.div>
           
           <motion.h1 
-            className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2"
+            className="text-4xl font-bold bg-clip-text text-transparent mb-2"
+            style={{
+              background: `linear-gradient(90deg, #489e9d 0%, #2d5a3d 50%, #489e9d 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -183,7 +277,20 @@ const LoginPage: React.FC = () => {
                     type="primary"
                     htmlType="submit"
                     loading={loading}
-                    className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 border-0 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="w-full h-14 text-base font-semibold rounded-xl border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                    style={{
+                      background: '#c5ddc3',
+                      color: '#2d5a3d',
+                      borderColor: '#c5ddc3'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#489e9d';
+                      e.currentTarget.style.color = '#ffffff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#c5ddc3';
+                      e.currentTarget.style.color = '#2d5a3d';
+                    }}
                   >
                     {loading ? (
                       <motion.span
@@ -209,7 +316,7 @@ const LoginPage: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <Text className="text-sm text-slate-700 font-semibold block mb-3">
-                🔑 Credenciales de demostración:
+                🔑 Credenciales reales de la base de datos:
               </Text>
               <div className="grid grid-cols-1 gap-2 text-xs text-slate-600">
                 <motion.div 
@@ -224,23 +331,61 @@ const LoginPage: React.FC = () => {
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍🏫</span>
-                  <span><strong>Profesor:</strong> profesor@mwpanel.com / Profesor123!</span>
+                  <span><strong>Prof. María:</strong> profesor@mwpanel.com / Profesor123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🏫</span>
+                  <span><strong>Prof. Ana:</strong> ana.lopez@mwpanel.com / Profesor123!</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍🎓</span>
-                  <span><strong>Estudiante:</strong> estudiante@mwpanel.com / Estudiante123!</span>
+                  <span><strong>Est. Ana:</strong> estudiante@mwpanel.com / Estudiante123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🎓</span>
+                  <span><strong>Est. Juan:</strong> juan.perez@mwpanel.com / Estudiante123!</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   <span>👨‍👩‍👧‍👦</span>
-                  <span><strong>Familia:</strong> familia@mwpanel.com / Familia123!</span>
+                  <span><strong>Fam. Carmen:</strong> familia@mwpanel.com / Familia123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍👩‍👧‍👦</span>
+                  <span><strong>Fam. Miguel:</strong> padre.garcia@mwpanel.com / Familia123!</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors bg-green-50 border border-green-200"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍🎓</span>
+                  <span><strong>🆕 Lucía M.:</strong> lucia.morales@mwpanel.com / Estudiante123@</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white transition-colors bg-green-50 border border-green-200"
+                  whileHover={{ x: 5 }}
+                >
+                  <span>👨‍👩‍👧‍👦</span>
+                  <span><strong>🆕 Roberto M.:</strong> roberto.morales@mwpanel.com / Familia123@</span>
                 </motion.div>
               </div>
+              <Text className="text-xs text-slate-500 mt-3 italic">
+                ✨ Total: 14 cuentas reales en BD (2 Admin, 3 Profesores, 5 Estudiantes, 4 Familias)
+              </Text>
             </motion.div>
           </FadeInUp>
         </motion.div>

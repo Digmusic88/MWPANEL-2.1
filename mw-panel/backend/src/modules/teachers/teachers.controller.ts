@@ -8,7 +8,8 @@ import {
   Delete, 
   UseGuards,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  Request
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TeachersService } from './teachers.service';
@@ -24,6 +25,16 @@ import { UserRole } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
+
+  @Get('me')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener datos del profesor logueado' })
+  @ApiResponse({ status: 200, description: 'Datos del profesor' })
+  @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
+  getMe(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.teachersService.findByUserId(userId);
+  }
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -70,5 +81,15 @@ export class TeachersController {
   @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
   remove(@Param('id') id: string) {
     return this.teachersService.remove(id);
+  }
+
+  @Get('dashboard/my-dashboard')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener datos del dashboard del profesor actual' })
+  @ApiResponse({ status: 200, description: 'Datos del dashboard del profesor' })
+  @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
+  getMyDashboard(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.teachersService.getTeacherDashboard(userId);
   }
 }

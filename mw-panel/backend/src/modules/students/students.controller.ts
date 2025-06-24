@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,6 +19,14 @@ export class StudentsController {
     return this.studentsService.findAll();
   }
 
+  @Get('me')
+  @Roles(UserRole.STUDENT)
+  @ApiOperation({ summary: 'Obtener mi perfil de estudiante' })
+  @ApiResponse({ status: 200, description: 'Datos del estudiante actual' })
+  getMyProfile(@Request() req: any) {
+    return this.studentsService.findByUserId(req.user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener estudiante por ID' })
   @ApiResponse({ status: 200, description: 'Datos del estudiante' })
@@ -32,6 +40,14 @@ export class StudentsController {
   @ApiResponse({ status: 201, description: 'Estudiante creado exitosamente' })
   create(@Body() createStudentDto: any) {
     return this.studentsService.create(createStudentDto);
+  }
+
+  @Patch('me/password')
+  @Roles(UserRole.STUDENT)
+  @ApiOperation({ summary: 'Cambiar mi contraseña' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada exitosamente' })
+  changeMyPassword(@Request() req: any, @Body() changePasswordDto: any) {
+    return this.studentsService.changePassword(req.user.id, changePasswordDto);
   }
 
   @Patch(':id')

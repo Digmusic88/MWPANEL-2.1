@@ -383,6 +383,53 @@ export class FamiliesService {
     };
   }
 
+  // Get simplified children data for activities page
+  async getMyChildren(userId: string) {
+    // Find the family where this user is either primary or secondary contact
+    const family = await this.familiesRepository.findOne({
+      where: [
+        { primaryContact: { id: userId } },
+        { secondaryContact: { id: userId } }
+      ]
+    });
+
+    if (!family) {
+      throw new NotFoundException('Familia no encontrada para este usuario');
+    }
+
+    // Get family students with basic info needed for activities
+    const familyStudents = await this.familyStudentRepository.find({
+      where: { family: { id: family.id } },
+      relations: [
+        'student', 
+        'student.user', 
+        'student.user.profile',
+        'student.classGroups',
+        'student.classGroups.courses',
+        'student.educationalLevel'
+      ],
+    });
+
+    // Return student data with expected structure for frontend
+    return familyStudents.map(familyStudent => ({
+      id: familyStudent.student.id,
+      enrollmentNumber: familyStudent.student.enrollmentNumber,
+      user: {
+        profile: {
+          firstName: familyStudent.student.user.profile.firstName,
+          lastName: familyStudent.student.user.profile.lastName,
+        }
+      },
+      relationship: familyStudent.relationship,
+      educationalLevel: familyStudent.student.educationalLevel?.name || 'No asignado',
+      classGroups: familyStudent.student.classGroups?.map(cg => ({
+        id: cg.id,
+        name: cg.name,
+        courses: cg.courses?.map(course => course.name) || []
+      })) || []
+    }));
+  }
+
   private async createFamilyUser(contactDto: FamilyContactDto, queryRunner: any): Promise<User> {
     const { email, password, firstName, lastName, dateOfBirth, documentNumber, phone, address, occupation } = contactDto;
 
@@ -449,18 +496,21 @@ export class FamiliesService {
     }
 
     // Update password if provided (legacy field for backward compatibility)
-    if (password) {
-      user.password = password;
+    if (password && password.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      user.passwordHash = await bcrypt.hash(password, 10);
       userUpdated = true;
     }
 
     // Handle password change if newPassword is provided (preferred method)
-    if (newPassword) {
-      user.password = newPassword;
+    if (newPassword && newPassword.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      user.passwordHash = await bcrypt.hash(newPassword, 10);
       userUpdated = true;
     }
 
     if (userUpdated) {
+      // Use queryRunner manager to maintain transaction consistency
       await queryRunner.manager.save(user);
     }
 

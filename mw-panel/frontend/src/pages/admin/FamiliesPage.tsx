@@ -74,7 +74,7 @@ interface FamilyStudent {
       }
     }
   }
-  relationship: 'father' | 'mother' | 'guardian' | 'other'
+  relationship: 'parent' | 'guardian' | 'other'
 }
 
 interface Family {
@@ -98,15 +98,13 @@ interface Student {
 }
 
 const relationshipLabels = {
-  father: 'Padre',
-  mother: 'Madre',
+  parent: 'Padre/Madre',
   guardian: 'Tutor/a',
   other: 'Otro'
 }
 
 const relationshipColors = {
-  father: 'blue',
-  mother: 'pink',
+  parent: 'blue',
   guardian: 'green',
   other: 'orange'
 }
@@ -942,11 +940,7 @@ const FamiliesPage: React.FC = () => {
                     name="primaryNewPassword"
                     label="Nueva Contraseña (opcional)"
                     rules={[
-                      { min: 8, message: 'Mínimo 8 caracteres' },
-                      {
-                        pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-                        message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
-                      }
+                      { min: 8, message: 'Mínimo 8 caracteres' }
                     ]}
                   >
                     <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />
@@ -1100,11 +1094,7 @@ const FamiliesPage: React.FC = () => {
                         name="secondaryNewPassword"
                         label="Nueva Contraseña (opcional)"
                         rules={[
-                          { min: 8, message: 'Mínimo 8 caracteres' },
-                          {
-                            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-                            message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
-                          }
+                          { min: 8, message: 'Mínimo 8 caracteres' }
                         ]}
                       >
                         <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />
@@ -1208,14 +1198,9 @@ const FamiliesPage: React.FC = () => {
                                 rules={[{ required: true, message: 'Selecciona la relación' }]}
                               >
                                 <Select placeholder="Relación familiar">
-                                  <Option value="father">
+                                  <Option value="parent">
                                     <Space>
-                                      <Tag color="blue">Padre</Tag>
-                                    </Space>
-                                  </Option>
-                                  <Option value="mother">
-                                    <Space>
-                                      <Tag color="pink">Madre</Tag>
+                                      <Tag color="blue">Padre/Madre</Tag>
                                     </Space>
                                   </Option>
                                   <Option value="guardian">

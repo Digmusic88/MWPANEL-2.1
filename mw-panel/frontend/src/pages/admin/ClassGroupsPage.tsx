@@ -147,44 +147,7 @@ const ClassGroupsPage: React.FC = () => {
       isCurrent: true,
     },
   ]);
-  const [courses] = useState<Course[]>([
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a30',
-      name: '1º Primaria',
-      order: 1,
-      cycle: { name: 'Primer Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a31',
-      name: '2º Primaria',
-      order: 2,
-      cycle: { name: 'Primer Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a32',
-      name: '3º Primaria',
-      order: 3,
-      cycle: { name: 'Segundo Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-      name: '4º Primaria',
-      order: 4,
-      cycle: { name: 'Segundo Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a34',
-      name: '5º Primaria',
-      order: 5,
-      cycle: { name: 'Tercer Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-    {
-      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35',
-      name: '6º Primaria',
-      order: 6,
-      cycle: { name: 'Tercer Ciclo', educationalLevel: { name: 'Primaria' } },
-    },
-  ]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -200,6 +163,7 @@ const ClassGroupsPage: React.FC = () => {
     fetchClassGroups();
     fetchTeachers();
     fetchStudents();
+    fetchCourses();
   }, []);
 
   const fetchClassGroups = async () => {
@@ -232,14 +196,31 @@ const ClassGroupsPage: React.FC = () => {
     }
   };
 
-  const handleCreate = () => {
+  const fetchCourses = async () => {
+    try {
+      const response = await apiClient.get('/class-groups/available-courses');
+      setCourses(response.data);
+    } catch (error: any) {
+      message.error('Error al cargar cursos: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleCreate = async () => {
     setEditingClassGroup(null);
+    // Asegurar que los cursos estén cargados antes de mostrar el modal
+    if (courses.length === 0) {
+      await fetchCourses();
+    }
     form.resetFields();
     setModalVisible(true);
   };
 
-  const handleEdit = (record: ClassGroup) => {
+  const handleEdit = async (record: ClassGroup) => {
     setEditingClassGroup(record);
+    // Asegurar que los cursos estén cargados antes de mostrar el modal
+    if (courses.length === 0) {
+      await fetchCourses();
+    }
     form.setFieldsValue({
       name: record.name,
       section: record.section,

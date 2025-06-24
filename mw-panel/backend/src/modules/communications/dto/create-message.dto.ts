@@ -42,4 +42,9 @@ export class CreateMessageDto {
   @IsOptional()
   @IsUUID()
   parentMessageId?: string;
+
+  @ApiPropertyOptional({ description: 'ID de la solicitud de asistencia (para mensajes de tipo ATTENDANCE_REQUEST)' })
+  @IsOptional()
+  @IsUUID()
+  attendanceRequestId?: string;
 }

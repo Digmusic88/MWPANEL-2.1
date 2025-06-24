@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,6 +32,15 @@ import { UserRole } from '../users/entities/user.entity';
 @ApiBearerAuth()
 export class ClassGroupsController {
   constructor(private readonly classGroupsService: ClassGroupsService) {}
+
+  @Get('my-classes')
+  @ApiOperation({ summary: 'Obtener grupos de clase del profesor actual' })
+  @ApiResponse({ status: 200, description: 'Lista de grupos de clase del profesor' })
+  @Roles(UserRole.TEACHER)
+  async findMyClasses(@Request() req: any) {
+    const userId = req.user.sub;
+    return this.classGroupsService.findTeacherClassesByUserId(userId);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los grupos de clase' })
@@ -79,6 +89,18 @@ export class ClassGroupsController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async getAvailableCourses() {
     return this.classGroupsService.getAvailableCourses();
+  }
+
+  @Get('teacher/my-groups')
+  @ApiOperation({ summary: 'Obtener grupos de clase del profesor autenticado' })
+  @ApiResponse({ status: 200, description: 'Lista de grupos del profesor' })
+  @Roles(UserRole.TEACHER)
+  async getMyGroups(@Request() req) {
+    const userId = req.user?.id;
+    if (!userId) {
+      return [];
+    }
+    return this.classGroupsService.findByTeacherUserId(userId);
   }
 
   @Get(':id')

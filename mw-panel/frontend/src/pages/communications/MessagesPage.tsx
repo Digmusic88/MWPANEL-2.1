@@ -33,6 +33,7 @@ import {
   ReloadOutlined,
   CheckOutlined,
   ClearOutlined,
+  ArrowLeftOutlined,
 } from '@ant-design/icons';
 import apiClient from '../../services/apiClient';
 import { useAuthStore } from '../../store/authStore';
@@ -114,7 +115,10 @@ const MessagesPage: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [replyMessage, setReplyMessage] = useState<Message | null>(null);
+  const [replyModalVisible, setReplyModalVisible] = useState(false);
   const [form] = Form.useForm();
+  const [replyForm] = Form.useForm();
   const [stats, setStats] = useState<any>({});
   const [userRole, setUserRole] = useState<string>('');
 
@@ -148,13 +152,31 @@ const MessagesPage: React.FC = () => {
     fetchUserRole();
   }, [filters]);
 
+  // Efecto para actualizar el rol cuando cambie el usuario
+  useEffect(() => {
+    if (user?.role) {
+      console.log('User role from store:', user.role);
+      setUserRole(user.role);
+    }
+  }, [user]);
+
+  // Debug effect
+  useEffect(() => {
+    console.log('Current userRole state:', userRole);
+  }, [userRole]);
+
   const fetchUserRole = async () => {
     try {
-      // Obtener el rol del usuario del token o de un endpoint
-      const token = localStorage.getItem('token');
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role || '');
+      // Obtener el rol del usuario del store de autenticación
+      if (user?.role) {
+        setUserRole(user.role);
+      } else {
+        // Fallback: obtener del token si no está en el store
+        const token = localStorage.getItem('token');
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          setUserRole(payload.role || '');
+        }
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
@@ -229,6 +251,43 @@ const MessagesPage: React.FC = () => {
       console.error('Error creating message:', error);
       message.error('Error al enviar el mensaje');
     }
+  };
+
+  const handleReplyMessage = async (values: any) => {
+    try {
+      const replyData = {
+        ...values,
+        parentMessageId: replyMessage?.id,
+        type: 'direct',
+        recipientId: replyMessage?.sender.id,
+      };
+      
+      await apiClient.post('/communications/messages', replyData);
+      message.success('Respuesta enviada exitosamente');
+      setReplyModalVisible(false);
+      setReplyMessage(null);
+      replyForm.resetFields();
+      fetchMessages();
+      fetchStats();
+      
+      // Actualizar el drawer si está abierto
+      if (selectedMessage) {
+        const response = await apiClient.get(`/communications/messages/${selectedMessage.id}`);
+        setSelectedMessage(response.data);
+      }
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      message.error('Error al enviar la respuesta');
+    }
+  };
+
+  const handleOpenReply = (messageToReply: Message) => {
+    setReplyMessage(messageToReply);
+    setReplyModalVisible(true);
+    replyForm.setFieldsValue({
+      subject: `Re: ${messageToReply.subject}`,
+      priority: 'normal'
+    });
   };
 
   const handleMarkAsRead = async (messageId: string) => {
@@ -445,6 +504,14 @@ const MessagesPage: React.FC = () => {
               onClick={() => handleViewMessage(record)}
             />
           </Tooltip>
+          <Tooltip title="Responder">
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => handleOpenReply(record)}
+              disabled={record.sender.id === user?.id}
+            />
+          </Tooltip>
           {!isMessageReadForUser(record) && (
             <Tooltip title="Marcar como leído">
               <Button
@@ -638,6 +705,9 @@ const MessagesPage: React.FC = () => {
                   {userRole === 'admin' && (
                     <Select.Option value="announcement">Comunicado oficial</Select.Option>
                   )}
+                  {(userRole === 'admin' || userRole === 'teacher') && (
+                    <Select.Option value="notification">Notificación</Select.Option>
+                  )}
                 </Select>
               </Form.Item>
             </Col>
@@ -727,6 +797,71 @@ const MessagesPage: React.FC = () => {
                   >
                     <Select 
                       placeholder={availableGroups.length > 0 ? "Seleccionar grupo" : "No tienes grupos disponibles"}
+                      disabled={availableGroups.length === 0}
+                    >
+                      {availableGroups.map(group => (
+                        <Select.Option key={group.id} value={group.id}>
+                          {(group as any).displayName || group.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                );
+              } else if (type === 'notification') {
+                return (
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Destinatario (opcional)"
+                        name="recipientId"
+                      >
+                        <Select
+                          showSearch
+                          placeholder="Todos los usuarios (dejar vacío) o seleccionar específico"
+                          allowClear
+                          filterOption={(input, option) =>
+                            (option?.children as unknown as string)
+                              ?.toLowerCase()
+                              .indexOf(input.toLowerCase()) >= 0
+                          }
+                        >
+                          {availableRecipients.map(user => (
+                            <Select.Option key={user.id} value={user.id}>
+                              {(user as any).displayName || `${user.profile.firstName} ${user.profile.lastName} (${user.role})`}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        label="Grupo destinatario (opcional)"
+                        name="targetGroupId"
+                      >
+                        <Select
+                          placeholder="Seleccionar grupo específico (opcional)"
+                          allowClear
+                          disabled={availableGroups.length === 0}
+                        >
+                          {availableGroups.map(group => (
+                            <Select.Option key={group.id} value={group.id}>
+                              {(group as any).displayName || group.name}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                );
+              } else if (type === 'announcement') {
+                return (
+                  <Form.Item
+                    label="Alcance del comunicado"
+                    name="targetGroupId"
+                  >
+                    <Select 
+                      placeholder="Todo el centro (dejar vacío) o grupo específico"
+                      allowClear
                       disabled={availableGroups.length === 0}
                     >
                       {availableGroups.map(group => (
@@ -847,7 +982,7 @@ const MessagesPage: React.FC = () => {
 
               {/* Respuestas (si las hay) */}
               {selectedMessage.replies && selectedMessage.replies.length > 0 && (
-                <Card size="small" title="Respuestas">
+                <Card size="small" title={`Respuestas (${selectedMessage.replies.length})`}>
                   {selectedMessage.replies.map((reply) => (
                     <Card key={reply.id} size="small" style={{ marginBottom: 16 }}>
                       <div>
@@ -858,6 +993,8 @@ const MessagesPage: React.FC = () => {
                           {new Date(reply.createdAt).toLocaleString()}
                         </Text>
                       </div>
+                      <Divider style={{ margin: '8px 0' }} />
+                      <Text strong>Asunto:</Text> {reply.subject}
                       <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>
                         {reply.content}
                       </Paragraph>
@@ -865,10 +1002,96 @@ const MessagesPage: React.FC = () => {
                   ))}
                 </Card>
               )}
+
+              {/* Botón para responder */}
+              {selectedMessage.sender.id !== user?.id && (
+                <Card size="small">
+                  <Button
+                    type="primary"
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => handleOpenReply(selectedMessage)}
+                    block
+                  >
+                    Responder a este mensaje
+                  </Button>
+                </Card>
+              )}
             </Space>
           </div>
         )}
       </Drawer>
+
+      {/* Modal para responder mensaje */}
+      <Modal
+        title={`Responder a: ${replyMessage?.subject || ''}`}
+        open={replyModalVisible}
+        onCancel={() => {
+          setReplyModalVisible(false);
+          setReplyMessage(null);
+          replyForm.resetFields();
+        }}
+        onOk={() => replyForm.submit()}
+        width={700}
+      >
+        {replyMessage && (
+          <div>
+            {/* Mensaje original */}
+            <Card size="small" style={{ marginBottom: 16, backgroundColor: '#f9f9f9' }}>
+              <Text type="secondary">Mensaje original de:</Text>
+              <div style={{ marginTop: 4 }}>
+                <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                <Text strong>
+                  {replyMessage.sender.profile.firstName} {replyMessage.sender.profile.lastName}
+                </Text>
+                <Text type="secondary" style={{ marginLeft: 8 }}>
+                  {new Date(replyMessage.createdAt).toLocaleString()}
+                </Text>
+              </div>
+              <Divider style={{ margin: '8px 0' }} />
+              <Text strong>Asunto:</Text> {replyMessage.subject}
+              <div style={{ marginTop: 8, maxHeight: '100px', overflow: 'auto' }}>
+                <Text>{replyMessage.content.substring(0, 200)}{replyMessage.content.length > 200 ? '...' : ''}</Text>
+              </div>
+            </Card>
+
+            {/* Formulario de respuesta */}
+            <Form
+              form={replyForm}
+              layout="vertical"
+              onFinish={handleReplyMessage}
+            >
+              <Form.Item
+                label="Asunto"
+                name="subject"
+                rules={[{ required: true, message: 'Ingrese el asunto de la respuesta' }]}
+              >
+                <Input placeholder="Asunto de la respuesta" />
+              </Form.Item>
+
+              <Form.Item
+                label="Prioridad"
+                name="priority"
+                initialValue="normal"
+              >
+                <Select>
+                  <Select.Option value="low">Baja</Select.Option>
+                  <Select.Option value="normal">Normal</Select.Option>
+                  <Select.Option value="high">Alta</Select.Option>
+                  <Select.Option value="urgent">Urgente</Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Respuesta"
+                name="content"
+                rules={[{ required: true, message: 'Ingrese el contenido de la respuesta' }]}
+              >
+                <TextArea rows={6} placeholder="Escriba su respuesta aquí..." />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
 
       <style>{`
         .unread-message {

@@ -135,9 +135,10 @@ export class UsersService {
     // Update user fields
     Object.assign(user, restUpdateData);
     
-    // Set new password if provided (will be automatically hashed by @BeforeUpdate hook)
-    if (newPassword) {
-      user.password = newPassword;
+    // Set new password if provided - hash it manually
+    if (newPassword && newPassword.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      user.passwordHash = await bcrypt.hash(newPassword, 10);
     }
     
     return this.usersRepository.save(user);

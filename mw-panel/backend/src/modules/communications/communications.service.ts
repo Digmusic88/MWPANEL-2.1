@@ -509,6 +509,29 @@ export class CommunicationsService {
     );
   }
 
+  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+    const notification = await this.notificationRepository.findOne({
+      where: { id: notificationId, userId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notificación no encontrada');
+    }
+
+    await this.notificationRepository.remove(notification);
+  }
+
+  async deleteAllNotifications(userId: string): Promise<number> {
+    const notifications = await this.notificationRepository.find({
+      where: { userId },
+    });
+
+    const count = notifications.length;
+    await this.notificationRepository.remove(notifications);
+    
+    return count;
+  }
+
   // ==================== HELPER METHODS ====================
 
   private async validateSendPermissions(

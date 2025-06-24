@@ -33,19 +33,12 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Nueva contraseña para el usuario (solo si se quiere cambiar)',
-    example: 'NewPassword123!',
+    example: 'NewPassword123',
     required: false,
     minLength: 8,
   })
   @IsOptional()
   @IsString({ message: 'La nueva contraseña debe ser una cadena de texto' })
   @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
-  @Matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    {
-      message:
-        'La nueva contraseña debe contener al menos una letra minúscula, una mayúscula, un número y un carácter especial',
-    },
-  )
   newPassword?: string;
 }

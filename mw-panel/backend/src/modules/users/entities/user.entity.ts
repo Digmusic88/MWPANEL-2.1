@@ -51,14 +51,18 @@ export class User {
   @OneToOne(() => UserProfile, profile => profile.user)
   profile: UserProfile;
 
-  // Virtual field for password
-  password: string;
+  // Virtual field for password (not persisted to database)
+  password?: string;
 
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
+    if (this.password && this.password.trim() !== '') {
+      console.log(`Hashing password for user: ${this.email}`);
       this.passwordHash = await bcrypt.hash(this.password, 10);
+      // Clear the virtual password field to avoid accidental exposure
+      delete this.password;
+      console.log(`Password hashed successfully for user: ${this.email}`);
     }
   }
 

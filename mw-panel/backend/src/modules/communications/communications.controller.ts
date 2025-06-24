@@ -193,6 +193,29 @@ export class CommunicationsController {
     return { message: 'Todas las notificaciones han sido marcadas como leídas' };
   }
 
+  @Delete('notifications/:id')
+  @ApiOperation({ summary: 'Eliminar notificación permanentemente' })
+  @ApiResponse({ status: 200, description: 'Notificación eliminada exitosamente' })
+  @ApiResponse({ status: 404, description: 'Notificación no encontrada' })
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY, UserRole.STUDENT)
+  async deleteNotification(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    await this.communicationsService.deleteNotification(id, userId);
+    return { message: 'Notificación eliminada exitosamente' };
+  }
+
+  @Delete('notifications/bulk/delete-all')
+  @ApiOperation({ summary: 'Eliminar todas las notificaciones del usuario' })
+  @ApiResponse({ status: 200, description: 'Notificaciones eliminadas exitosamente' })
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY, UserRole.STUDENT)
+  async deleteAllNotifications(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    const count = await this.communicationsService.deleteAllNotifications(userId);
+    return { message: 'Todas las notificaciones han sido eliminadas', deletedCount: count };
+  }
+
   // ==================== STATISTICS ====================
 
   @Get('stats')

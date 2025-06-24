@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Typography, Space, Select, Avatar, Progress, Button, Spin, message, Empty, Alert } from 'antd'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Card, Row, Col, Statistic, Typography, Space, Select, Avatar, Progress, Button, Spin, message, Empty, Alert, List, Tag } from 'antd'
 import {
   UserOutlined,
   TrophyOutlined,
@@ -8,9 +8,19 @@ import {
   FileTextOutlined,
   DownloadOutlined,
   BookOutlined,
+  SmileOutlined,
+  MehOutlined,
+  FrownOutlined,
+  EyeOutlined,
+  ClockCircleOutlined,
+  SendOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import MessagesPage from '../communications/MessagesPage'
+import AttendancePage from './AttendancePage'
+import ActivitiesPage from './ActivitiesPage'
+import TasksPage from './TasksPage'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -64,6 +74,64 @@ interface StudentData {
   recentEvaluations: RecentEvaluation[]
 }
 
+interface RecentActivity {
+  id: string
+  value: string
+  comment?: string
+  assessedAt: string
+  activity: {
+    name: string
+    description?: string
+    valuationType: 'emoji' | 'score'
+    maxScore?: number
+    subjectAssignment?: {
+      subject: {
+        name: string
+        code: string
+      }
+      classGroup: {
+        name: string
+      }
+    }
+    teacher: {
+      user: {
+        profile: {
+          firstName: string
+          lastName: string
+        }
+      }
+    }
+  }
+}
+
+interface TaskSubmission {
+  id: string
+  status: 'not_submitted' | 'submitted' | 'late' | 'returned'
+  isGraded: boolean
+  finalGrade?: number
+  needsRevision: boolean
+  submittedAt?: string
+}
+
+interface PendingTask {
+  id: string
+  title: string
+  description?: string
+  taskType: 'homework' | 'project' | 'exam' | 'quiz'
+  priority: 'low' | 'medium' | 'high'
+  dueDate: string
+  assignedDate: string
+  maxPoints?: number
+  requiresFile: boolean
+  subjectAssignment: {
+    subject: {
+      name: string
+      code: string
+    }
+  }
+  submissions: TaskSubmission[]
+}
+
 interface FamilyDashboardData {
   family: {
     id: string
@@ -99,10 +167,15 @@ const relationshipLabels = {
 }
 
 const FamilyDashboardHome: React.FC = () => {
+  const navigate = useNavigate()
   const [dashboardData, setDashboardData] = useState<FamilyDashboardData | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(false)
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([])
+  const [loadingTasks, setLoadingTasks] = useState(false)
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -125,9 +198,112 @@ const FamilyDashboardHome: React.FC = () => {
     }
   }
 
+  const fetchRecentActivities = async (studentId: string) => {
+    try {
+      setLoadingActivities(true)
+      const response = await apiClient.get(`/activities/family/activities?studentId=${studentId}&limit=3`)
+      setRecentActivities(response.data)
+    } catch (error: any) {
+      console.error('Error fetching recent activities:', error)
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
+  const fetchPendingTasks = async (studentId: string) => {
+    try {
+      setLoadingTasks(true)
+      const response = await apiClient.get(`/tasks/family/tasks?studentId=${studentId}&onlyPending=true&limit=4`)
+      setPendingTasks(response.data.tasks || [])
+    } catch (error: any) {
+      console.error('Error fetching pending tasks:', error)
+      setPendingTasks([])
+    } finally {
+      setLoadingTasks(false)
+    }
+  }
+
+  const getEmojiIcon = (value: string) => {
+    switch (value) {
+      case 'happy': return <SmileOutlined style={{ color: '#52c41a' }} />
+      case 'neutral': return <MehOutlined style={{ color: '#faad14' }} />
+      case 'sad': return <FrownOutlined style={{ color: '#ff4d4f' }} />
+      default: return null
+    }
+  }
+
+
+  const getTaskTypeLabel = (type: string) => {
+    switch (type) {
+      case 'homework': return 'Tarea'
+      case 'project': return 'Proyecto'
+      case 'exam': return 'Test Yourself'
+      case 'quiz': return 'Cuestionario'
+      case 'assignment': return 'Tarea'
+      case 'research': return 'Investigación'
+      case 'presentation': return 'Presentación'
+      default: return 'Actividad'
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return '#ff4d4f'
+      case 'medium': return '#faad14'
+      case 'low': return '#52c41a'
+      default: return '#d9d9d9'
+    }
+  }
+
+  const getTaskStatus = (task: PendingTask) => {
+    const submission = task.submissions?.[0]
+    if (!submission) return { status: 'no_submission', color: '#d9d9d9', text: 'Sin asignar' }
+    
+    // Para tareas tipo EXAM (Test Yourself), mostrar como notificación
+    if (task.taskType === 'exam') {
+      const now = new Date()
+      const dueDate = new Date(task.dueDate)
+      const isOverdue = now > dueDate
+      
+      if (isOverdue) {
+        return { status: 'exam_completed', color: '#52c41a', text: 'Examen Realizado' }
+      }
+      return { status: 'exam_notification', color: '#1890ff', text: 'Notificación de Examen' }
+    }
+    
+    const now = new Date()
+    const dueDate = new Date(task.dueDate)
+    const isOverdue = now > dueDate
+    
+    if (submission.isGraded) {
+      return { status: 'graded', color: '#52c41a', text: 'Calificada' }
+    }
+    
+    if (submission.needsRevision) {
+      return { status: 'needs_revision', color: '#722ed1', text: 'Necesita revisión' }
+    }
+    
+    if (submission.status === 'submitted' || submission.status === 'late') {
+      return { status: 'submitted', color: '#1890ff', text: 'Entregada' }
+    }
+    
+    if (isOverdue) {
+      return { status: 'overdue', color: '#ff4d4f', text: 'Atrasada' }
+    }
+    
+    return { status: 'pending', color: '#faad14', text: 'Pendiente' }
+  }
+
   useEffect(() => {
     fetchDashboardData()
   }, [])
+
+  useEffect(() => {
+    if (selectedChildId) {
+      fetchRecentActivities(selectedChildId)
+      fetchPendingTasks(selectedChildId)
+    }
+  }, [selectedChildId])
 
   // Show loading state
   if (loading) {
@@ -298,79 +474,217 @@ const FamilyDashboardHome: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Main Content */}
+      {/* Main Content - Reorganized for compactness */}
       <Row gutter={[16, 16]}>
-        {/* Recent Evaluations */}
+        {/* Left Column */}
         <Col xs={24} lg={12}>
-          <Card 
-            title="Evaluaciones Recientes"
-            extra={
-              <Button type="primary" icon={<DownloadOutlined />} size="small">
-                Descargar Informe
-              </Button>
-            }
-          >
-            {selectedChild.recentEvaluations.length > 0 ? (
-              <Space direction="vertical" className="w-full">
-                {selectedChild.recentEvaluations.map((evaluation) => (
-                  <div key={evaluation.id} className="border-b border-gray-100 pb-3 last:border-b-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <Text strong>{evaluation.period}</Text>
-                        <div className="text-sm text-gray-500">
-                          {new Date(evaluation.createdAt).toLocaleDateString('es-ES')}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Text className="text-sm text-gray-500">
-                          {evaluation.competencyEvaluations.length} competencia(s)
-                        </Text>
-                      </div>
-                    </div>
-                    {evaluation.competencyEvaluations.slice(0, 3).map((compEval, index) => (
-                      <div key={index} className="flex justify-between items-center py-1">
-                        <Text className="text-sm">{compEval.competencyName}</Text>
-                        {compEval.displayGrade && (
-                          <span 
-                            className="text-sm font-medium"
-                            style={{ color: getGradeColor(parseFloat(compEval.displayGrade)) }}
-                          >
-                            {compEval.displayGrade}
-                          </span>
-                        )}
-                        {compEval.score && !compEval.displayGrade && (
-                          <span className="text-sm font-medium text-blue-600">
-                            {compEval.score}/5
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                    {evaluation.competencyEvaluations.length > 3 && (
-                      <Text type="secondary" className="text-xs">
-                        Y {evaluation.competencyEvaluations.length - 3} competencia(s) más...
-                      </Text>
-                    )}
-                  </div>
-                ))}
-              </Space>
-            ) : (
-              <Empty 
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No hay evaluaciones recientes"
-              />
-            )}
-          </Card>
+          <Space direction="vertical" size="middle" className="w-full">
+            {/* Pending Tasks Widget */}
+            <Card 
+              title={
+                <Space>
+                  <SendOutlined style={{ color: '#faad14' }} />
+                  Tareas Pendientes
+                </Space>
+              }
+              extra={
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  icon={<EyeOutlined />}
+                  onClick={() => navigate('/family/tasks')}
+                >
+                  Ver Todas
+                </Button>
+              }
+              size="small"
+            >
+              {loadingTasks ? (
+                <div className="text-center py-4">
+                  <Spin size="small" />
+                </div>
+              ) : pendingTasks.length > 0 ? (
+                <List
+                  size="small"
+                  dataSource={pendingTasks}
+                  renderItem={(task) => {
+                    const taskStatus = getTaskStatus(task)
+                    const dueDate = new Date(task.dueDate)
+                    const isUrgent = dueDate.getTime() - Date.now() < 24 * 60 * 60 * 1000 // Less than 24h
+                    
+                    return (
+                      <List.Item className="hover:bg-gray-50 px-3 py-2">
+                        <List.Item.Meta
+                          avatar={
+                            <div className="relative">
+                              <Avatar 
+                                style={{ backgroundColor: getPriorityColor(task.priority) }}
+                                icon={<SendOutlined />}
+                                size="small"
+                              />
+                              {isUrgent && (
+                                <ExclamationCircleOutlined 
+                                  className="absolute -top-1 -right-1 text-red-500 text-xs"
+                                />
+                              )}
+                            </div>
+                          }
+                          title={
+                            <div className="flex justify-between items-start">
+                              <Text strong className="text-sm">{task.title}</Text>
+                              <Tag color={taskStatus.color} className="text-xs">
+                                {taskStatus.text}
+                              </Tag>
+                            </div>
+                          }
+                          description={
+                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                              <div className="flex justify-between items-center">
+                                <Tag color="blue" className="text-xs">
+                                  {task.subjectAssignment.subject.code}
+                                </Tag>
+                                <Text type="secondary" className="text-xs">
+                                  {getTaskTypeLabel(task.taskType)}
+                                </Text>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <Text type="secondary" className="text-xs">
+                                  <ClockCircleOutlined className="mr-1" />
+                                  {dueDate.toLocaleDateString('es-ES')}
+                                </Text>
+                                {task.requiresFile && (
+                                  <Text type="secondary" className="text-xs">
+                                    📎 Requiere archivo
+                                  </Text>
+                                )}
+                              </div>
+                              {isUrgent && (
+                                <Alert
+                                  message="¡Entrega urgente!"
+                                  type="warning"
+                                  showIcon
+                                  className="mt-1"
+                                />
+                              )}
+                            </Space>
+                          }
+                        />
+                      </List.Item>
+                    )
+                  }}
+                />
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No hay tareas pendientes"
+                  className="py-4"
+                />
+              )}
+            </Card>
+
+            {/* Recent Activities Widget - Compact */}
+            <Card 
+              title={
+                <Space>
+                  <BookOutlined />
+                  Actividades Recientes
+                </Space>
+              }
+              extra={
+                <Button 
+                  type="link" 
+                  size="small" 
+                  icon={<EyeOutlined />}
+                  onClick={() => navigate('/family/activities')}
+                >
+                  Ver Todas
+                </Button>
+              }
+              size="small"
+            >
+              {loadingActivities ? (
+                <div className="text-center py-4">
+                  <Spin size="small" />
+                </div>
+              ) : recentActivities.length > 0 ? (
+                <List
+                  size="small"
+                  dataSource={recentActivities.slice(0, 3)}
+                  renderItem={(activity) => (
+                    <List.Item className="hover:bg-gray-50 px-3 py-2">
+                      <List.Item.Meta
+                        avatar={
+                          <div className="flex flex-col items-center">
+                            {activity.activity.valuationType === 'emoji' ? (
+                              getEmojiIcon(activity.value)
+                            ) : (
+                              <Avatar 
+                                style={{ backgroundColor: '#1890ff' }}
+                                size="small"
+                              >
+                                {activity.value}
+                              </Avatar>
+                            )}
+                          </div>
+                        }
+                        title={
+                          <div className="flex justify-between items-center">
+                            <Text strong className="text-sm">{activity.activity.name}</Text>
+                            <Tag 
+                              color={activity.activity.subjectAssignment ? 'blue' : 'default'}
+                              className="text-xs"
+                            >
+                              {activity.activity.subjectAssignment?.subject.code || 'General'}
+                            </Tag>
+                          </div>
+                        }
+                        description={
+                          <Text type="secondary" className="text-xs">
+                            {new Date(activity.assessedAt).toLocaleDateString('es-ES')}
+                          </Text>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No hay actividades recientes"
+                  className="py-4"
+                />
+              )}
+            </Card>
+          </Space>
         </Col>
 
-        {/* Student Summary and Actions */}
+        {/* Right Column */}
         <Col xs={24} lg={12}>
-          <Space direction="vertical" size="large" className="w-full">
-            {/* Student Summary */}
-            <Card title="Resumen Académico" extra={<BookOutlined />}>
-              <Space direction="vertical" className="w-full">
-                <div className="flex justify-between items-center">
-                  <Text>Total de Evaluaciones</Text>
-                  <Text strong>{selectedChild.stats.totalEvaluations}</Text>
+          <Space direction="vertical" size="middle" className="w-full">
+            {/* Student Summary - Compact */}
+            <Card title="Resumen Académico" extra={<BookOutlined />} size="small">
+              <Row gutter={[8, 8]}>
+                <Col span={12}>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold" style={{ color: getGradeColor(selectedChild.stats.averageGrade) }}>
+                      {selectedChild.stats.averageGrade.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-gray-500">Nota Media</div>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedChild.stats.attendance}%
+                    </div>
+                    <div className="text-xs text-gray-500">Asistencia</div>
+                  </div>
+                </Col>
+              </Row>
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <Text className="text-sm">Evaluaciones Completadas</Text>
+                  <Text strong className="text-sm">{selectedChild.stats.completedEvaluations}/{selectedChild.stats.totalEvaluations}</Text>
                 </div>
                 <Progress 
                   percent={selectedChild.stats.totalEvaluations > 0 
@@ -378,70 +692,103 @@ const FamilyDashboardHome: React.FC = () => {
                     : 0
                   }
                   strokeColor="#52c41a"
-                  format={() => `${selectedChild.stats.completedEvaluations}/${selectedChild.stats.totalEvaluations}`}
+                  size="small"
                 />
-                
-                <div className="flex justify-between items-center mt-4">
-                  <Text>Rendimiento Académico</Text>
-                  <Text strong style={{ color: getGradeColor(selectedChild.stats.averageGrade) }}>
-                    {selectedChild.stats.averageGrade.toFixed(1)}/10
-                  </Text>
-                </div>
-                <Progress 
-                  percent={selectedChild.stats.averageGrade * 10}
-                  strokeColor={getGradeColor(selectedChild.stats.averageGrade)}
-                />
-                
-                <div className="flex justify-between items-center mt-4">
-                  <Text>Asistencia</Text>
-                  <Text strong style={{ color: '#52c41a' }}>
-                    {selectedChild.stats.attendance}%
-                  </Text>
-                </div>
-                <Progress 
-                  percent={selectedChild.stats.attendance}
-                  strokeColor="#52c41a"
-                />
-              </Space>
+              </div>
             </Card>
 
-            {/* Quick Actions */}
-            <Card title="Acciones Rápidas">
-              <Space direction="vertical" className="w-full">
-                <Button 
-                  type="default" 
-                  block 
-                  icon={<FileTextOutlined />}
-                  onClick={() => message.info('Función de comunicaciones en desarrollo')}
-                >
-                  Ver Comunicaciones
+            {/* Recent Evaluations - Compact */}
+            <Card 
+              title="Evaluaciones Recientes"
+              extra={
+                <Button type="link" icon={<DownloadOutlined />} size="small">
+                  Informe
                 </Button>
-                <Button 
-                  type="default" 
-                  block 
-                  icon={<DownloadOutlined />}
-                  onClick={() => message.info('Función de reportes en desarrollo')}
-                >
-                  Descargar Boletín Completo
-                </Button>
-                <Button 
-                  type="default" 
-                  block 
-                  icon={<CalendarOutlined />}
-                  onClick={() => message.info('Función de calendario en desarrollo')}
-                >
-                  Ver Calendario Escolar
-                </Button>
-              </Space>
+              }
+              size="small"
+            >
+              {selectedChild.recentEvaluations.length > 0 ? (
+                <Space direction="vertical" className="w-full">
+                  {selectedChild.recentEvaluations.slice(0, 2).map((evaluation) => (
+                    <div key={evaluation.id} className="border-b border-gray-100 pb-2 last:border-b-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <Text strong className="text-sm">{evaluation.period}</Text>
+                        <Text className="text-xs text-gray-500">
+                          {new Date(evaluation.createdAt).toLocaleDateString('es-ES')}
+                        </Text>
+                      </div>
+                      {evaluation.competencyEvaluations.slice(0, 2).map((compEval, index) => (
+                        <div key={index} className="flex justify-between items-center py-1">
+                          <Text className="text-xs">{compEval.competencyName}</Text>
+                          {compEval.displayGrade && (
+                            <span 
+                              className="text-xs font-medium"
+                              style={{ color: getGradeColor(parseFloat(compEval.displayGrade)) }}
+                            >
+                              {compEval.displayGrade}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </Space>
+              ) : (
+                <Empty 
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No hay evaluaciones"
+                  className="py-4"
+                />
+              )}
+            </Card>
+
+            {/* Quick Actions - Compact */}
+            <Card title="Acciones Rápidas" size="small">
+              <Row gutter={[8, 8]}>
+                <Col span={12}>
+                  <Button 
+                    type="default" 
+                    block 
+                    size="small"
+                    icon={<FileTextOutlined />}
+                    onClick={() => navigate('/family/messages')}
+                  >
+                    Mensajes
+                  </Button>
+                </Col>
+                <Col span={12}>
+                  <Button 
+                    type="default" 
+                    block 
+                    size="small"
+                    icon={<CalendarOutlined />}
+                    onClick={() => navigate('/family/attendance')}
+                  >
+                    Asistencia
+                  </Button>
+                </Col>
+                <Col span={24}>
+                  <Button 
+                    type="primary" 
+                    block 
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => message.info('Función de reportes en desarrollo')}
+                  >
+                    Descargar Boletín Completo
+                  </Button>
+                </Col>
+              </Row>
             </Card>
           </Space>
         </Col>
       </Row>
 
-      {/* Competency Progress */}
-      <Card title="Evaluación por Competencias">
+
+      {/* Competency Progress - Compact */}
+      <Card title="Evaluación por Competencias" size="small">
         {selectedChild.recentEvaluations.length > 0 ? (
-          <Row gutter={[16, 16]}>
+          <Row gutter={[8, 8]}>
             {(() => {
               // Aggregate competency data from recent evaluations
               const competencyMap = new Map<string, { total: number; count: number; grades: number[] }>()
@@ -468,20 +815,23 @@ const FamilyDashboardHome: React.FC = () => {
                   count: data.count
                 }))
                 .sort((a, b) => b.count - a.count) // Sort by frequency
-                .slice(0, 4) // Show top 4 competencies
+                .slice(0, 6) // Show top 6 competencies
               
               return competencies.map((comp) => (
-                <Col xs={24} md={12} lg={6} key={comp.name}>
+                <Col xs={12} sm={8} lg={4} key={comp.name}>
                   <div className="text-center">
-                    <div className="text-lg font-bold mb-2">{comp.name}</div>
+                    <div className="text-sm font-bold mb-2" title={comp.name}>
+                      {comp.name.length > 15 ? `${comp.name.substring(0, 15)}...` : comp.name}
+                    </div>
                     <Progress 
                       type="circle" 
                       percent={comp.average * 10} 
                       strokeColor={getGradeColor(comp.average)}
                       format={() => comp.average.toFixed(1)}
+                      width={60}
                     />
-                    <div className="text-xs text-gray-500 mt-2">
-                      {comp.count} evaluación(es)
+                    <div className="text-xs text-gray-500 mt-1">
+                      {comp.count} eval.
                     </div>
                   </div>
                 </Col>
@@ -492,6 +842,7 @@ const FamilyDashboardHome: React.FC = () => {
           <Empty 
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description="No hay evaluaciones por competencias disponibles"
+            className="py-4"
           />
         )}
       </Card>
@@ -504,6 +855,9 @@ const FamilyDashboard: React.FC = () => {
     <Routes>
       <Route index element={<FamilyDashboardHome />} />
       <Route path="messages" element={<MessagesPage />} />
+      <Route path="attendance" element={<AttendancePage />} />
+      <Route path="activities" element={<ActivitiesPage />} />
+      <Route path="tasks" element={<TasksPage />} />
       {/* Add more family routes here */}
     </Routes>
   )

@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateTeacherDto } from './create-teacher.dto';
-import { IsOptional, IsString, MinLength, Matches } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateTeacherDto extends PartialType(CreateTeacherDto) {
@@ -11,19 +11,12 @@ export class UpdateTeacherDto extends PartialType(CreateTeacherDto) {
 
   @ApiProperty({
     description: 'Nueva contraseña para el profesor (solo si se quiere cambiar)',
-    example: 'NewPassword123!',
+    example: 'NewPassword123',
     required: false,
     minLength: 8,
   })
   @IsOptional()
   @IsString({ message: 'La nueva contraseña debe ser una cadena de texto' })
   @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
-  @Matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    {
-      message:
-        'La nueva contraseña debe contener al menos una letra minúscula, una mayúscula, un número y un carácter especial',
-    },
-  )
   newPassword?: string;
 }
