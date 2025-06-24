@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Typography, Space, Select, Avatar, Progress, Button, Spin, message, Empty, Alert } from 'antd'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Card, Row, Col, Statistic, Typography, Space, Select, Avatar, Progress, Button, Spin, message, Empty, Alert, List, Tag } from 'antd'
 import {
   UserOutlined,
   TrophyOutlined,
@@ -8,10 +8,15 @@ import {
   FileTextOutlined,
   DownloadOutlined,
   BookOutlined,
+  SmileOutlined,
+  MehOutlined,
+  FrownOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import MessagesPage from '../communications/MessagesPage'
 import AttendancePage from './AttendancePage'
+import ActivitiesPage from './ActivitiesPage'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -65,6 +70,27 @@ interface StudentData {
   recentEvaluations: RecentEvaluation[]
 }
 
+interface RecentActivity {
+  id: string
+  value: string
+  comment?: string
+  assessedAt: string
+  activity: {
+    name: string
+    description?: string
+    valuationType: 'emoji' | 'score'
+    maxScore?: number
+    teacher: {
+      user: {
+        profile: {
+          firstName: string
+          lastName: string
+        }
+      }
+    }
+  }
+}
+
 interface FamilyDashboardData {
   family: {
     id: string
@@ -100,10 +126,13 @@ const relationshipLabels = {
 }
 
 const FamilyDashboardHome: React.FC = () => {
+  const navigate = useNavigate()
   const [dashboardData, setDashboardData] = useState<FamilyDashboardData | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(false)
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -126,9 +155,45 @@ const FamilyDashboardHome: React.FC = () => {
     }
   }
 
+  const fetchRecentActivities = async (studentId: string) => {
+    try {
+      setLoadingActivities(true)
+      const response = await apiClient.get(`/activities/family/activities?studentId=${studentId}&limit=3`)
+      setRecentActivities(response.data)
+    } catch (error: any) {
+      console.error('Error fetching recent activities:', error)
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
+  const getEmojiIcon = (value: string) => {
+    switch (value) {
+      case 'happy': return <SmileOutlined style={{ color: '#52c41a' }} />
+      case 'neutral': return <MehOutlined style={{ color: '#faad14' }} />
+      case 'sad': return <FrownOutlined style={{ color: '#ff4d4f' }} />
+      default: return null
+    }
+  }
+
+  const getEmojiText = (value: string) => {
+    switch (value) {
+      case 'happy': return 'Excelente'
+      case 'neutral': return 'Incompleta'
+      case 'sad': return 'No entregada'
+      default: return 'Sin valorar'
+    }
+  }
+
   useEffect(() => {
     fetchDashboardData()
   }, [])
+
+  useEffect(() => {
+    if (selectedChildId) {
+      fetchRecentActivities(selectedChildId)
+    }
+  }, [selectedChildId])
 
   // Show loading state
   if (loading) {
@@ -439,6 +504,108 @@ const FamilyDashboardHome: React.FC = () => {
         </Col>
       </Row>
 
+      {/* Recent Activities Widget */}
+      <Card 
+        title={
+          <Space>
+            <BookOutlined />
+            Actividades Diarias Recientes
+          </Space>
+        }
+        extra={
+          <Button 
+            type="primary" 
+            size="small" 
+            icon={<EyeOutlined />}
+            onClick={() => navigate('/family/activities')}
+          >
+            Ver Todas
+          </Button>
+        }
+      >
+        {loadingActivities ? (
+          <div className="text-center py-4">
+            <Spin size="small" />
+          </div>
+        ) : recentActivities.length > 0 ? (
+          <List
+            dataSource={recentActivities}
+            renderItem={(activity) => (
+              <List.Item className="hover:bg-gray-50">
+                <List.Item.Meta
+                  avatar={
+                    <div className="flex flex-col items-center">
+                      <Avatar 
+                        style={{ backgroundColor: '#1890ff' }}
+                        icon={<BookOutlined />}
+                        size="small"
+                      />
+                      <div className="mt-1">
+                        {activity.activity.valuationType === 'emoji' ? (
+                          getEmojiIcon(activity.value)
+                        ) : (
+                          <span 
+                            style={{ 
+                              fontSize: '10px', 
+                              fontWeight: 'bold',
+                              color: parseFloat(activity.value) >= (activity.activity.maxScore || 10) * 0.8 ? '#52c41a' : 
+                                     parseFloat(activity.value) >= (activity.activity.maxScore || 10) * 0.6 ? '#faad14' : '#ff4d4f'
+                            }}
+                          >
+                            {activity.value}/{activity.activity.maxScore}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  }
+                  title={
+                    <div className="flex justify-between items-center">
+                      <Text strong className="text-sm">{activity.activity.name}</Text>
+                      {activity.activity.valuationType === 'emoji' ? (
+                        <Tag 
+                          color={
+                            activity.value === 'happy' ? 'green' :
+                            activity.value === 'neutral' ? 'orange' : 'red'
+                          }
+                        >
+                          {getEmojiText(activity.value)}
+                        </Tag>
+                      ) : (
+                        <Tag color="blue">
+                          {activity.value}/{activity.activity.maxScore}
+                        </Tag>
+                      )}
+                    </div>
+                  }
+                  description={
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      <div className="flex justify-between">
+                        <Text type="secondary" className="text-xs">
+                          Prof. {activity.activity.teacher.user.profile.firstName} {activity.activity.teacher.user.profile.lastName}
+                        </Text>
+                        <Text type="secondary" className="text-xs">
+                          {new Date(activity.assessedAt).toLocaleDateString('es-ES')}
+                        </Text>
+                      </div>
+                      {activity.comment && (
+                        <Text className="text-xs italic" style={{ color: '#666' }}>
+                          "{activity.comment}"
+                        </Text>
+                      )}
+                    </Space>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No hay actividades recientes"
+          />
+        )}
+      </Card>
+
       {/* Competency Progress */}
       <Card title="Evaluación por Competencias">
         {selectedChild.recentEvaluations.length > 0 ? (
@@ -506,6 +673,7 @@ const FamilyDashboard: React.FC = () => {
       <Route index element={<FamilyDashboardHome />} />
       <Route path="messages" element={<MessagesPage />} />
       <Route path="attendance" element={<AttendancePage />} />
+      <Route path="activities" element={<ActivitiesPage />} />
       {/* Add more family routes here */}
     </Routes>
   )

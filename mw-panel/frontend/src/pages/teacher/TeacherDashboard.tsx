@@ -16,6 +16,7 @@ import apiClient from '@services/apiClient'
 import TeacherSchedulePage from './TeacherSchedulePage'
 import MessagesPage from '../communications/MessagesPage'
 import AttendancePage from './AttendancePage'
+import ActivitiesPage from './ActivitiesPage'
 import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Title, Text } = Typography
@@ -589,6 +590,7 @@ const TeacherDashboard: React.FC = () => {
       <Route index element={<TeacherDashboardHome />} />
       <Route path="schedule" element={<TeacherSchedulePage />} />
       <Route path="attendance" element={<AttendancePage />} />
+      <Route path="activities" element={<ActivitiesPage />} />
       <Route path="messages" element={<MessagesPage />} />
       {/* Add more teacher routes here */}
     </Routes>

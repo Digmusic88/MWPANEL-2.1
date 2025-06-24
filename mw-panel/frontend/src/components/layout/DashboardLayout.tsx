@@ -293,6 +293,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           },
           createAttendanceMenuItem('attendance', 'Control de Asistencia', '/teacher/attendance'),
           {
+            key: 'activities',
+            icon: <BarChartOutlined />,
+            label: 'Actividades Diarias',
+            onClick: () => navigate('/teacher/activities'),
+          },
+          {
             key: 'evaluations',
             icon: <FileTextOutlined />,
             label: 'Evaluaciones',
@@ -356,6 +362,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <CalendarOutlined />,
             label: 'Asistencia',
             onClick: () => navigate('/family/attendance'),
+          },
+          {
+            key: 'activities',
+            icon: <BookOutlined />,
+            label: 'Actividades Diarias',
+            onClick: () => navigate('/family/activities'),
           },
           createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]

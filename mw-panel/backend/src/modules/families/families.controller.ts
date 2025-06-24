@@ -61,6 +61,15 @@ export class FamiliesController {
     return this.familiesService.getFamilyDashboard(userId);
   }
 
+  @Get('my-children')
+  @Roles(UserRole.FAMILY)
+  @ApiOperation({ summary: 'Obtener los hijos de la familia logueada para actividades' })
+  @ApiResponse({ status: 200, description: 'Lista de hijos de la familia' })
+  getMyChildren(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.familiesService.getMyChildren(userId);
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY)
   @ApiOperation({ summary: 'Obtener una familia por ID' })

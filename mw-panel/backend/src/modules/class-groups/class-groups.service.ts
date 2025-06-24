@@ -391,4 +391,73 @@ export class ClassGroupsService {
     const result = await query.getMany();
     return result;
   }
+
+  async findTeacherClasses(teacherId: string): Promise<ClassGroup[]> {
+    // Get classes where teacher is tutor
+    const tutoredClasses = await this.classGroupRepository.find({
+      where: { tutor: { id: teacherId } },
+      relations: [
+        'academicYear',
+        'courses',
+        'courses.cycle',
+        'courses.cycle.educationalLevel',
+        'tutor',
+        'tutor.user',
+        'tutor.user.profile',
+      ],
+    });
+
+    // Get classes where teacher has subject assignments
+    const assignmentClasses = await this.classGroupRepository
+      .createQueryBuilder('classGroup')
+      .leftJoinAndSelect('classGroup.academicYear', 'academicYear')
+      .leftJoinAndSelect('classGroup.courses', 'courses')
+      .leftJoinAndSelect('courses.cycle', 'cycle')
+      .leftJoinAndSelect('cycle.educationalLevel', 'educationalLevel')
+      .leftJoinAndSelect('classGroup.tutor', 'tutor')
+      .leftJoinAndSelect('tutor.user', 'tutorUser')
+      .leftJoinAndSelect('tutorUser.profile', 'tutorProfile')
+      .innerJoin('subject_assignments', 'sa', 'sa.classGroupId = classGroup.id')
+      .where('sa.teacherId = :teacherId', { teacherId })
+      .getMany();
+
+    // Combine and deduplicate classes
+    const allClassesMap = new Map<string, ClassGroup>();
+    
+    [...tutoredClasses, ...assignmentClasses].forEach(classGroup => {
+      allClassesMap.set(classGroup.id, classGroup);
+    });
+
+    return Array.from(allClassesMap.values()).sort((a, b) => {
+      // Ordenar por nivel educativo primero
+      const aLevel = a.courses[0]?.cycle?.educationalLevel?.code || '';
+      const bLevel = b.courses[0]?.cycle?.educationalLevel?.code || '';
+      
+      // Orden específico de niveles educativos
+      const levelOrder = { 'INFANTIL': 1, 'PRIMARIA': 2, 'SECUNDARIA': 3 };
+      const aOrder = levelOrder[aLevel] || 999;
+      const bOrder = levelOrder[bLevel] || 999;
+      
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+      
+      // Si son del mismo nivel, ordenar por nombre del grupo
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  async findTeacherClassesByUserId(userId: string): Promise<ClassGroup[]> {
+    // Primero encontrar el teacher por userId
+    const teacher = await this.teacherRepository.findOne({
+      where: { user: { id: userId } },
+      select: ['id'],
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Profesor no encontrado para este usuario');
+    }
+
+    return this.findTeacherClasses(teacher.id);
+  }
 }

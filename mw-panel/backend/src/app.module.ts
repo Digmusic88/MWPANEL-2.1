@@ -18,6 +18,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { ActivitiesModule } from './modules/activities/activities.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import databaseConfig from './config/database.config';
@@ -66,6 +67,7 @@ import appConfig from './config/app.config';
     DashboardModule,
     CommunicationsModule,
     AttendanceModule,
+    ActivitiesModule,
   ],
   controllers: [],
   providers: [

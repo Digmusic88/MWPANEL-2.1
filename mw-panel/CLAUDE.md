@@ -15,41 +15,38 @@ Sistema de gestión educativa completo con NestJS + React + PostgreSQL + Docker.
 8. **Sistema de Comunicaciones COMPLETO** - 4 tipos mensaje + respuestas + notificaciones ✅
 9. **UI Aurora Login** - Efecto aurora boreal animado ✅
 10. **Sistema de Notificaciones** - Campana, eliminar, gestión completa ✅
-11. **🆕 Sistema de Asistencia COMPLETO** - Control diario + solicitudes familia + bulk actions ✅
+11. **🆕 Sistema de Asistencia COMPLETO** - Control diario + solicitudes + notificaciones + badges ✅
 
-## 🎯 **HOJA DE RUTA ACTUALIZADA**
+## 🎯 **HOJA DE RUTA PRIORIZADA**
 
-### **🔥 MÁXIMA PRIORIDAD (Próximas 1-2 semanas)**
-1. **📚 Sistema de Tareas/Deberes**
-   - Creación por profesores
-   - Entrega digital estudiantes
-   - Corrección y calificación
-   - Notificaciones automáticas
-   - **IMPACTO**: Digitalización proceso pedagógico core
+### **🔥 MÁXIMA PRIORIDAD (1-2 semanas)**
+1. **📚 Sistema de Tareas/Deberes** - Digitalización pedagógica core
+   - Creación por profesores con fechas límite
+   - Entrega digital de archivos por estudiantes
+   - Corrección online con calificación
+   - Dashboard de seguimiento y estadísticas
+   - Notificaciones automáticas familia/estudiante
 
-### **⭐ ALTA PRIORIDAD (Semanas 3-4)**
-3. **📅 Calendario Académico**
-   - Eventos del centro
-   - Exámenes programados
-   - Fechas importantes
-   - Vistas por rol
-   - **IMPACTO**: Organización temporal institucional
+### **⭐ ALTA PRIORIDAD (2-4 semanas)**
+2. **📊 Sistema de Expedientes Académicos** - Cumplimiento normativo
+   - Historial completo por estudiante
+   - Generación automática de boletines PDF
+   - Gestión de documentos digitales
+   - Exportación datos oficiales
 
-4. **📊 Sistema de Expedientes**
-   - Historial académico completo
-   - Documentos digitales
-   - Seguimiento longitudinal
-   - **IMPACTO**: Cumplimiento normativo y trazabilidad
+3. **📅 Calendario Académico Integrado** - Organización institucional
+   - Eventos, exámenes, fechas importantes
+   - Sincronización con evaluaciones y horarios
+   - Vistas personalizadas por rol
 
-### **📋 MEDIA PRIORIDAD (Semanas 5-6)**
-5. **📄 Reportes y Boletines PDF** - Generación automática, plantillas
-6. **📖 Portal de Recursos** - Biblioteca digital, materiales
+### **📋 MEDIA PRIORIDAD (1-2 meses)**
+4. **📖 Portal de Recursos Educativos** - Biblioteca digital
+5. **📈 Dashboard Analytics Avanzado** - Métricas y KPIs centro
+6. **💬 Chat Tiempo Real** - Comunicación instantánea
 
-### **💬 BAJA PRIORIDAD (Futuro)**
-7. **Chat Tiempo Real** - WebSockets, mensajería instantánea
-8. **📱 App Móvil** - React Native/Flutter
-9. **📈 Dashboard Analytics** - Métricas centro
-10. **💾 Sistema de Backup** - Copias automáticas
+### **🔮 FUTURO**
+7. **📱 App Móvil** - React Native
+8. **🔒 Sistema de Backup Automático**
 
 ## 🛠️ **COMANDOS ESENCIALES**
 
@@ -66,23 +63,23 @@ Sistema de gestión educativa completo con NestJS + React + PostgreSQL + Docker.
 
 ## 📈 **ÚLTIMA IMPLEMENTACIÓN**
 
-### **📅 2025-06-24 (SISTEMA DE ASISTENCIA)**
-- ✅ **Backend Completo**: Módulo attendance con 2 entidades (AttendanceRecord, AttendanceRequest)
-- ✅ **12 Endpoints API**: CRUD completo + estadísticas + bulk actions
-- ✅ **Frontend Familias**: Solicitudes justificación con validación 10+ caracteres
-- ✅ **Frontend Profesores**: Control diario + revisión solicitudes + estadísticas
-- ✅ **Integración Comunicaciones**: Notificaciones automáticas aprobación/rechazo
-- ✅ **Menús Navegación**: Acceso directo desde sidebar familias y profesores
-- ✅ **Validaciones**: Fechas límite, duplicados, relaciones familia-estudiante
+### **📅 2025-06-24 (SISTEMA DE ASISTENCIA + NOTIFICACIONES)**
+- ✅ **Backend Completo**: Módulo attendance con 2 entidades + 12 endpoints API
+- ✅ **Frontend Familias**: Solicitudes justificación con protección datos LOPD
+- ✅ **Frontend Profesores**: Dashboard con widget solicitudes + acciones rápidas
+- ✅ **Sistema de Badges**: Notificaciones naranjas en menú lateral profesor
+- ✅ **Integración Comunicaciones**: Notificaciones automáticas + hook tiempo real
+- ✅ **Relaciones Familiares**: Simplificado a Padre/Madre, Tutor/a, Otro
+- ✅ **UX Optimizada**: Revisión solicitudes sin motivo obligatorio
 
 ## 📊 **RESUMEN EJECUTIVO**
 - **Estado**: 11 sistemas operativos (69% completado)
-- **Asistencia**: Sistema completo con control diario + solicitudes + notificaciones automáticas
-- **Próximo**: Sistema de Tareas/Deberes (digitalización proceso pedagógico)
+- **Asistencia**: Sistema completo con notificaciones tiempo real + protección datos
+- **Próximo**: Sistema de Tareas/Deberes (máxima prioridad pedagógica)
 - **Arquitectura**: Microservicios dockerizados, PostgreSQL + Redis
-- **Usuarios**: 4 roles, permisos granulares, JWT + verificación relaciones familia-estudiante
+- **Usuarios**: 4 roles, permisos granulares, JWT + hooks tiempo real
 
-**🎯 Estrategia: Priorizar funcionalidades pedagógicas core sobre sistemas auxiliares**
+**🎯 Estrategia: Funcionalidades pedagógicas core + UX profesores optimizada**
 
 ---
-*Actualizado: 2025-06-24 - Sistema de asistencia implementado al 100%*
+*Actualizado: 2025-06-24 - Asistencia + Notificaciones completo 100%*

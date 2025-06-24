@@ -1,0 +1,182 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  Query,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ActivitiesService } from './activities.service';
+import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
+import { AssessActivityDto, BulkAssessActivityDto, AssessmentResponseDto } from './dto/assess-activity.dto';
+import { ActivityStatisticsDto, TeacherActivitySummaryDto } from './dto/activity-statistics.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
+import { Activity } from './entities/activity.entity';
+import { ActivityAssessment } from './entities/activity-assessment.entity';
+
+@ApiTags('activities')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('activities')
+export class ActivitiesController {
+  constructor(private readonly activitiesService: ActivitiesService) {}
+
+  // ==================== CRUD ACTIVIDADES ====================
+
+  @Post()
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Crear nueva actividad diaria' })
+  @ApiResponse({ status: 201, description: 'Actividad creada exitosamente', type: Activity })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 403, description: 'Sin permisos para acceder al grupo' })
+  async create(
+    @Body() createActivityDto: CreateActivityDto,
+    @Request() req: any,
+  ): Promise<Activity> {
+    const userId = req.user.sub;
+    return this.activitiesService.createByUserId(createActivityDto, userId);
+  }
+
+  @Get()
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener actividades del profesor' })
+  @ApiQuery({ name: 'classGroupId', required: false, description: 'ID del grupo de clase' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Fecha de inicio (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'Fecha de fin (YYYY-MM-DD)' })
+  @ApiResponse({ status: 200, description: 'Lista de actividades', type: [Activity] })
+  async findAll(
+    @Request() req: any,
+    @Query('classGroupId') classGroupId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<Activity[]> {
+    const userId = req.user.sub;
+    return this.activitiesService.findAllByUserId(userId, classGroupId, startDate, endDate);
+  }
+
+  @Get('summary')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener resumen de actividades del profesor' })
+  @ApiResponse({ status: 200, description: 'Resumen de actividades', type: TeacherActivitySummaryDto })
+  async getTeacherSummary(@Request() req: any): Promise<TeacherActivitySummaryDto> {
+    const userId = req.user.sub;
+    return this.activitiesService.getTeacherSummaryByUserId(userId);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener actividad por ID' })
+  @ApiResponse({ status: 200, description: 'Actividad encontrada', type: Activity })
+  @ApiResponse({ status: 404, description: 'Actividad no encontrada' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Activity> {
+    return this.activitiesService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Actualizar actividad' })
+  @ApiResponse({ status: 200, description: 'Actividad actualizada', type: Activity })
+  @ApiResponse({ status: 403, description: 'Sin permisos para editar esta actividad' })
+  @ApiResponse({ status: 404, description: 'Actividad no encontrada' })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateActivityDto: UpdateActivityDto,
+    @Request() req: any,
+  ): Promise<Activity> {
+    const userId = req.user.sub;
+    return this.activitiesService.updateByUserId(id, updateActivityDto, userId);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Eliminar actividad (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Actividad eliminada exitosamente' })
+  @ApiResponse({ status: 403, description: 'Sin permisos para eliminar esta actividad' })
+  @ApiResponse({ status: 404, description: 'Actividad no encontrada' })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ): Promise<{ message: string }> {
+    const userId = req.user.sub;
+    await this.activitiesService.removeByUserId(id, userId);
+    return { message: 'Actividad eliminada exitosamente' };
+  }
+
+  // ==================== VALORACIONES ====================
+
+  @Post(':activityId/assess/:studentId')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Valorar actividad de un estudiante' })
+  @ApiResponse({ status: 200, description: 'Valoración registrada', type: AssessmentResponseDto })
+  @ApiResponse({ status: 400, description: 'Valor de valoración inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos para valorar esta actividad' })
+  @ApiResponse({ status: 404, description: 'Actividad o estudiante no encontrado' })
+  async assessStudent(
+    @Param('activityId', ParseUUIDPipe) activityId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Body() assessDto: AssessActivityDto,
+    @Request() req: any,
+  ): Promise<ActivityAssessment> {
+    const userId = req.user.sub;
+    return this.activitiesService.assessStudentByUserId(activityId, studentId, assessDto, userId);
+  }
+
+  @Post(':activityId/bulk-assess')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Valoración masiva de actividad' })
+  @ApiResponse({ status: 200, description: 'Valoraciones masivas registradas', type: [AssessmentResponseDto] })
+  @ApiResponse({ status: 400, description: 'Valor de valoración inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos para valorar esta actividad' })
+  @ApiResponse({ status: 404, description: 'Actividad no encontrada' })
+  async bulkAssess(
+    @Param('activityId', ParseUUIDPipe) activityId: string,
+    @Body() bulkAssessDto: BulkAssessActivityDto,
+    @Request() req: any,
+  ): Promise<ActivityAssessment[]> {
+    const userId = req.user.sub;
+    return this.activitiesService.bulkAssessByUserId(activityId, bulkAssessDto, userId);
+  }
+
+  // ==================== ESTADÍSTICAS ====================
+
+  @Get(':id/statistics')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener estadísticas de una actividad' })
+  @ApiResponse({ status: 200, description: 'Estadísticas de la actividad', type: ActivityStatisticsDto })
+  @ApiResponse({ status: 403, description: 'Sin permisos para ver estas estadísticas' })
+  @ApiResponse({ status: 404, description: 'Actividad no encontrada' })
+  async getActivityStatistics(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ): Promise<ActivityStatisticsDto> {
+    const userId = req.user.sub;
+    return this.activitiesService.getActivityStatisticsByUserId(id, userId);
+  }
+
+  // ==================== ENDPOINTS PARA FAMILIAS ====================
+
+  @Get('family/activities')
+  @Roles(UserRole.FAMILY)
+  @ApiOperation({ summary: 'Obtener actividades valoradas para la familia' })
+  @ApiQuery({ name: 'studentId', required: false, description: 'ID del estudiante específico' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Límite de resultados', type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de actividades valoradas', type: [AssessmentResponseDto] })
+  async getFamilyActivities(
+    @Request() req: any,
+    @Query('studentId') studentId?: string,
+    @Query('limit') limit?: number,
+  ): Promise<ActivityAssessment[]> {
+    const familyUserId = req.user.id;
+    return this.activitiesService.getFamilyActivities(familyUserId, studentId, limit || 10);
+  }
+}

@@ -33,6 +33,15 @@ import { UserRole } from '../users/entities/user.entity';
 export class ClassGroupsController {
   constructor(private readonly classGroupsService: ClassGroupsService) {}
 
+  @Get('my-classes')
+  @ApiOperation({ summary: 'Obtener grupos de clase del profesor actual' })
+  @ApiResponse({ status: 200, description: 'Lista de grupos de clase del profesor' })
+  @Roles(UserRole.TEACHER)
+  async findMyClasses(@Request() req: any) {
+    const userId = req.user.sub;
+    return this.classGroupsService.findTeacherClassesByUserId(userId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Obtener todos los grupos de clase' })
   @ApiQuery({ name: 'academicYearId', required: false, description: 'Filtrar por año académico' })
