@@ -19,6 +19,7 @@ import { UserRole } from '@/types/user'
 import { useLocation, useNavigate } from 'react-router-dom'
 import NotificationCenter from '../NotificationCenter'
 import { useUnreadMessages } from '../../hooks/useUnreadMessages'
+import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -33,6 +34,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { unreadCount } = useUnreadMessages()
+  const { pendingCount } = usePendingAttendanceRequests()
 
   // Helper para crear item de menú con badge
   const createMessageMenuItem = (key: string, label: string, path: string) => ({
@@ -65,6 +67,50 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             size="small" 
             style={{ 
               backgroundColor: '#ff4d4f',
+              fontSize: '11px',
+              height: '18px',
+              minWidth: '18px',
+              lineHeight: '18px',
+              borderRadius: '9px'
+            }}
+          />
+        )}
+      </div>
+    ),
+    onClick: () => navigate(path),
+  })
+
+  // Helper para crear item de menú de asistencia con badge
+  const createAttendanceMenuItem = (key: string, label: string, path: string) => ({
+    key,
+    icon: collapsed ? (
+      <Badge 
+        count={pendingCount} 
+        size="small" 
+        offset={[8, 8]}
+        style={{ 
+          backgroundColor: '#faad14',
+          fontSize: '10px',
+          height: '16px',
+          minWidth: '16px',
+          lineHeight: '16px',
+          borderRadius: '8px'
+        }}
+      >
+        <CalendarOutlined />
+      </Badge>
+    ) : (
+      <CalendarOutlined />
+    ),
+    label: (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{label}</span>
+        {!collapsed && pendingCount > 0 && (
+          <Badge 
+            count={pendingCount} 
+            size="small" 
+            style={{ 
+              backgroundColor: '#faad14',
               fontSize: '11px',
               height: '18px',
               minWidth: '18px',
@@ -245,12 +291,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Mi Horario',
             onClick: () => navigate('/teacher/schedule'),
           },
-          {
-            key: 'attendance',
-            icon: <CalendarOutlined />,
-            label: 'Control de Asistencia',
-            onClick: () => navigate('/teacher/attendance'),
-          },
+          createAttendanceMenuItem('attendance', 'Control de Asistencia', '/teacher/attendance'),
           {
             key: 'evaluations',
             icon: <FileTextOutlined />,

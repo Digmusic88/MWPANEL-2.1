@@ -12,8 +12,7 @@ import { User } from './user.entity';
 import { Student } from '../../students/entities/student.entity';
 
 export enum FamilyRelationship {
-  FATHER = 'father',
-  MOTHER = 'mother',
+  PARENT = 'parent', // Padre/Madre
   GUARDIAN = 'guardian',
   OTHER = 'other',
 }

@@ -74,13 +74,16 @@ export class AttendanceController {
   @ApiResponse({ status: 200, description: 'Historial de asistencia' })
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
-  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY, UserRole.STUDENT)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT)
   async getByStudent(
+    @Request() req: any,
     @Param('studentId') studentId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.attendanceService.getAttendanceByStudent(studentId, startDate, endDate);
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    const userRole = req.user?.role;
+    return this.attendanceService.getAttendanceByStudent(studentId, startDate, endDate, userId, userRole);
   }
 
   @Post('records/bulk-present')
@@ -121,12 +124,15 @@ export class AttendanceController {
   @ApiOperation({ summary: 'Obtener solicitudes de un estudiante' })
   @ApiResponse({ status: 200, description: 'Lista de solicitudes' })
   @ApiQuery({ name: 'status', required: false, enum: AttendanceRequestStatus })
-  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY, UserRole.STUDENT)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT)
   async getRequestsByStudent(
+    @Request() req: any,
     @Param('studentId') studentId: string,
     @Query('status') status?: AttendanceRequestStatus,
   ) {
-    return this.attendanceService.getRequestsByStudent(studentId, status);
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    const userRole = req.user?.role;
+    return this.attendanceService.getRequestsByStudent(studentId, status, userId, userRole);
   }
 
   @Get('requests/group/:classGroupId/pending')
@@ -144,6 +150,47 @@ export class AttendanceController {
   async getMyRequests(@Request() req: any) {
     const userId = req.user?.sub || req.user?.userId || req.user?.id;
     return this.attendanceService.getRequestsByUser(userId);
+  }
+
+  // ==================== FAMILY-SPECIFIC ENDPOINTS ====================
+
+  @Get('family/my-children')
+  @ApiOperation({ summary: 'Obtener lista de mis hijos (solo para familias)' })
+  @ApiResponse({ status: 200, description: 'Lista de hijos de la familia' })
+  @Roles(UserRole.FAMILY)
+  async getMyChildren(@Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.attendanceService.getFamilyChildren(userId);
+  }
+
+  @Get('family/child/:studentId/attendance')
+  @ApiOperation({ summary: 'Obtener historial de asistencia de mi hijo' })
+  @ApiResponse({ status: 200, description: 'Historial de asistencia del hijo' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @Roles(UserRole.FAMILY)
+  async getMyChildAttendance(
+    @Request() req: any,
+    @Param('studentId') studentId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.attendanceService.getAttendanceByStudent(studentId, startDate, endDate, userId, 'family');
+  }
+
+  @Get('family/child/:studentId/requests')
+  @ApiOperation({ summary: 'Obtener solicitudes de mi hijo' })
+  @ApiResponse({ status: 200, description: 'Lista de solicitudes del hijo' })
+  @ApiQuery({ name: 'status', required: false, enum: AttendanceRequestStatus })
+  @Roles(UserRole.FAMILY)
+  async getMyChildRequests(
+    @Request() req: any,
+    @Param('studentId') studentId: string,
+    @Query('status') status?: AttendanceRequestStatus,
+  ) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.attendanceService.getRequestsByStudent(studentId, status, userId, 'family');
   }
 
   // ==================== STATISTICS ====================

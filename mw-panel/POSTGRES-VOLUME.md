@@ -12,12 +12,17 @@ El volumen persistente `mw-panel-pgdata` ha sido configurado para mantener todos
 
 ### 🔒 **Datos Protegidos**
 El volumen contiene permanentemente:
-- ✅ Usuarios y perfiles (incluido admin@mwpanel.com)
-- ✅ Estudiantes y familias
-- ✅ Profesores y datos académicos
-- ✅ Evaluaciones y competencias
-- ✅ Registros de asistencia
-- ✅ Mensajes y comunicaciones
+- ✅ **47 Usuarios** completos (admin, teachers, families, students)
+- ✅ **15 Estudiantes** con perfiles detallados
+- ✅ **10 Familias** con contactos primarios y secundarios
+- ✅ **9 Profesores** con especialidades y asignaciones
+- ✅ **13 Grupos de Clase** completos (Infantil, Primaria, Secundaria)
+- ✅ **10 Materias** del curriculum académico
+- ✅ **330 Registros de Asistencia** (últimos 30 días)
+- ✅ **15 Mensajes** entre profesores y familias
+- ✅ **20 Relaciones** familia-estudiante
+- ✅ **13 Cursos** ordenados por nivel (Infantil 3-5 años, Primaria 1º-6º, Secundaria 1º-4º ESO)
+- ✅ Estructura académica completa (años, niveles, ciclos, cursos)
 - ✅ Configuraciones del sistema
 
 ## 🛠️ **Comandos de Gestión**
@@ -142,20 +147,23 @@ docker-compose exec postgres psql -U mwpanel -d mwpanel -c "SELECT COUNT(*) as t
 - Password: `Admin123`
 - Rol: Admin
 
-**Usuario Profesor:**
-- Email: `profesor@mwpanel.com`
-- Password: `Profesor123`
+**Usuarios Profesor:** (9 profesores disponibles)
+- Email: `profesor@mwpanel.com`, `matematicas@mwpanel.com`, `lengua@mwpanel.com`, etc.
+- Password: `Profesor123` (para todos)
 - Rol: Teacher
+- Especialidades: Matemáticas, Lengua, Inglés, Ed. Física, Música, etc.
 
-**Usuario Familia:**
-- Email: `familia@mwpanel.com`
-- Password: `Familia123`
+**Usuarios Familia:** (10 familias disponibles)
+- Email: `padres.garcia@gmail.com`, `familia.martin@gmail.com`, etc.
+- Password: `Familia123` (para todos)
 - Rol: Family
+- Incluye: García López, Martín Ruiz, Fernández Silva, etc.
 
-**Usuario Estudiante:**
-- Email: `estudiante@mwpanel.com`
-- Password: `Estudiante123`
+**Usuarios Estudiante:** (15 estudiantes disponibles)
+- Email: `estudiante1@mwpanel.com` a `estudiante15@mwpanel.com`
+- Password: `Estudiante123` (para todos)
 - Rol: Student
+- Nombres: Ana García, Carlos Martín, Elena Fernández, etc.
 
 **URLs del Sistema:**
 - Frontend: http://localhost:5173

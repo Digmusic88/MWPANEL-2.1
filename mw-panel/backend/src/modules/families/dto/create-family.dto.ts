@@ -56,7 +56,7 @@ export class FamilyStudentRelationDto {
   @IsNotEmpty()
   studentId: string;
 
-  @ApiProperty({ enum: FamilyRelationship, example: FamilyRelationship.FATHER })
+  @ApiProperty({ enum: FamilyRelationship, example: FamilyRelationship.PARENT })
   @IsEnum(FamilyRelationship)
   relationship: FamilyRelationship;
 }

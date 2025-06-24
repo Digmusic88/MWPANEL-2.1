@@ -130,6 +130,27 @@ export class ClassGroupsService {
     });
   }
 
+  async findByTeacherUserId(userId: string): Promise<ClassGroup[]> {
+    const queryBuilder = this.classGroupRepository
+      .createQueryBuilder('classGroup')
+      .leftJoinAndSelect('classGroup.academicYear', 'academicYear')
+      .leftJoinAndSelect('classGroup.courses', 'courses')
+      .leftJoinAndSelect('courses.cycle', 'cycle')
+      .leftJoinAndSelect('cycle.educationalLevel', 'educationalLevel')
+      .leftJoinAndSelect('classGroup.tutor', 'tutor')
+      .leftJoinAndSelect('tutor.user', 'tutorUser')
+      .leftJoinAndSelect('tutorUser.profile', 'tutorProfile')
+      .leftJoinAndSelect('classGroup.students', 'students')
+      .leftJoinAndSelect('students.user', 'studentUser')
+      .leftJoinAndSelect('studentUser.profile', 'studentProfile')
+      .where('tutorUser.id = :userId', { userId })
+      .orderBy('academicYear.startDate', 'DESC')
+      .addOrderBy('classGroup.section', 'ASC');
+
+    const result = await queryBuilder.getMany();
+    return result;
+  }
+
   async create(createClassGroupDto: CreateClassGroupDto): Promise<ClassGroup> {
     const { academicYearId, courseIds, tutorId, studentIds, ...classGroupData } = createClassGroupDto;
 
@@ -367,9 +388,7 @@ export class ClassGroupsService {
       .addOrderBy('cycle.order', 'ASC')
       .addOrderBy('course.order', 'ASC');
     
-    console.log('Available Courses Query:', query.getSql());
     const result = await query.getMany();
-    console.log('Available Courses Result:', result.map(c => `${c.name} - ${c.cycle.educationalLevel.name}`));
     return result;
   }
 }

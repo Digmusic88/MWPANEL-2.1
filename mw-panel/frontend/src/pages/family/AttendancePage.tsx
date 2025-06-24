@@ -80,13 +80,23 @@ const AttendancePage: React.FC = () => {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      // Por ahora, usar endpoint de estudiantes general
-      // En el futuro, crear endpoint específico para estudiantes de la familia
-      const response = await apiClient.get('/students');
-      setStudents(response.data);
+      // Usar endpoint específico para estudiantes de la familia (seguro)
+      const response = await apiClient.get('/attendance/family/my-children');
+      // Transformar el formato de respuesta para mantener compatibilidad
+      const transformedStudents = response.data.map((child: any) => ({
+        id: child.id,
+        enrollmentNumber: '', // No disponible en el nuevo endpoint
+        user: {
+          profile: {
+            firstName: child.firstName,
+            lastName: child.lastName,
+          }
+        }
+      }));
+      setStudents(transformedStudents);
       
-      if (response.data.length > 0) {
-        setSelectedStudent(response.data[0].id);
+      if (transformedStudents.length > 0) {
+        setSelectedStudent(transformedStudents[0].id);
       }
     } catch (error) {
       console.error('Error loading students:', error);
@@ -105,8 +115,8 @@ const AttendancePage: React.FC = () => {
       const startDate = dayjs().subtract(1, 'month').format('YYYY-MM-DD');
       
       const [recordsResponse, requestsResponse] = await Promise.all([
-        apiClient.get(`/attendance/records/student/${studentId}?startDate=${startDate}&endDate=${endDate}`),
-        apiClient.get(`/attendance/requests/student/${studentId}`)
+        apiClient.get(`/attendance/family/child/${studentId}/attendance?startDate=${startDate}&endDate=${endDate}`),
+        apiClient.get(`/attendance/family/child/${studentId}/requests`)
       ]);
       
       setAttendanceRecords(recordsResponse.data);

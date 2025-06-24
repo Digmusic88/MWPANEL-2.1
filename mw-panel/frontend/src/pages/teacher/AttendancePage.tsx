@@ -760,12 +760,11 @@ const AttendancePage: React.FC = () => {
 
           <Form.Item
             name="reviewNote"
-            label="Nota de Revisión"
-            rules={[{ required: true, message: 'Agrega una nota explicativa' }]}
+            label="Nota de Revisión (Opcional)"
           >
             <TextArea
               rows={4}
-              placeholder="Explica la razón de tu decisión..."
+              placeholder="Opcional: agregar comentarios adicionales..."
             />
           </Form.Item>
 

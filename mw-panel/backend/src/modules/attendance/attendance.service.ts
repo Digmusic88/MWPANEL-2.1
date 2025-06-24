@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, IsNull, Not } from 'typeorm';
+import { Repository, Between, IsNull, Not, In } from 'typeorm';
 import { AttendanceRecord, AttendanceStatus } from './entities/attendance-record.entity';
 import { AttendanceRequest, AttendanceRequestStatus, AttendanceRequestType } from './entities/attendance-request.entity';
 import { Student } from '../students/entities/student.entity';
@@ -117,7 +117,7 @@ export class AttendanceService {
     // Obtener registros de asistencia para esos estudiantes en la fecha especificada
     const records = await this.attendanceRecordRepository.find({
       where: {
-        studentId: studentIds as any,
+        studentId: In(studentIds),
         date: new Date(date),
       },
       relations: ['student', 'student.user', 'student.user.profile', 'markedBy'],
@@ -130,7 +130,17 @@ export class AttendanceService {
     studentId: string,
     startDate?: string,
     endDate?: string,
+    requestingUserId?: string,
+    requestingUserRole?: string,
   ): Promise<AttendanceRecord[]> {
+    // SECURITY CHECK: If requesting user is family, verify they have access to this student
+    if (requestingUserRole === 'family' && requestingUserId) {
+      const hasAccess = await this.verifyFamilyStudentAccess(requestingUserId, studentId);
+      if (!hasAccess) {
+        throw new ForbiddenException('No tienes permisos para ver la asistencia de este estudiante');
+      }
+    }
+
     const where: any = { studentId };
 
     if (startDate && endDate) {
@@ -283,7 +293,7 @@ export class AttendanceService {
   ): Promise<AttendanceRequest> {
     const request = await this.attendanceRequestRepository.findOne({
       where: { id },
-      relations: ['student', 'student.classGroup', 'requestedBy'],
+      relations: ['student', 'student.classGroups', 'requestedBy'],
     });
 
     if (!request) {
@@ -375,7 +385,17 @@ export class AttendanceService {
   async getRequestsByStudent(
     studentId: string,
     status?: AttendanceRequestStatus,
+    requestingUserId?: string,
+    requestingUserRole?: string,
   ): Promise<AttendanceRequest[]> {
+    // SECURITY CHECK: If requesting user is family, verify they have access to this student
+    if (requestingUserRole === 'family' && requestingUserId) {
+      const hasAccess = await this.verifyFamilyStudentAccess(requestingUserId, studentId);
+      if (!hasAccess) {
+        throw new ForbiddenException('No tienes permisos para ver las solicitudes de este estudiante');
+      }
+    }
+
     const where: any = { studentId };
     
     if (status) {
@@ -404,7 +424,7 @@ export class AttendanceService {
 
     return await this.attendanceRequestRepository.find({
       where: {
-        studentId: studentIds as any,
+        studentId: In(studentIds),
         status: AttendanceRequestStatus.PENDING,
       },
       relations: ['student', 'student.user', 'student.user.profile', 'requestedBy'],
@@ -534,6 +554,87 @@ export class AttendanceService {
         return 'salida anticipada';
       default:
         return 'asistencia';
+    }
+  }
+
+  // ==================== FAMILY-SPECIFIC METHODS ====================
+
+  /**
+   * Get all children (students) belonging to a specific family user
+   * @param familyUserId - The ID of the family user
+   * @returns Promise<Student[]> - Array of students belonging to this family
+   */
+  async getFamilyChildren(familyUserId: string): Promise<any[]> {
+    try {
+      // Find all family-student relationships where the user is either primary or secondary contact
+      const familyRelations = await this.familyStudentRepository.find({
+        where: [
+          // Check if family user is primary contact
+          {
+            family: { primaryContact: { id: familyUserId } },
+          },
+          // Check if family user is secondary contact
+          {
+            family: { secondaryContact: { id: familyUserId } },
+          },
+        ],
+        relations: [
+          'student',
+          'student.user',
+          'student.user.profile',
+          'student.classGroups',
+        ],
+      });
+
+      // Extract students and format response - ONLY show their own children (PROTECCIÓN DE DATOS)
+      const children = familyRelations.map(relation => ({
+        id: relation.student.id,
+        name: `${relation.student.user.profile.firstName} ${relation.student.user.profile.lastName}`,
+        firstName: relation.student.user.profile.firstName,
+        lastName: relation.student.user.profile.lastName,
+        classGroups: relation.student.classGroups?.map(group => ({
+          id: group.id,
+          name: group.name,
+        })) || [],
+      }));
+
+      return children;
+    } catch (error) {
+      console.error('Error getting family children:', error);
+      throw new BadRequestException('Error al obtener la lista de hijos');
+    }
+  }
+
+  // ==================== SECURITY METHODS ====================
+
+  /**
+   * Verify if a family user has access to a specific student
+   * @param familyUserId - The ID of the family user
+   * @param studentId - The ID of the student
+   * @returns Promise<boolean> - true if family has access, false otherwise
+   */
+  private async verifyFamilyStudentAccess(familyUserId: string, studentId: string): Promise<boolean> {
+    try {
+      // Check if there's a family-student relationship
+      const familyRelation = await this.familyStudentRepository.findOne({
+        where: [
+          // Check if family user is primary contact
+          {
+            family: { primaryContact: { id: familyUserId } },
+            student: { id: studentId },
+          },
+          // Check if family user is secondary contact
+          {
+            family: { secondaryContact: { id: familyUserId } },
+            student: { id: studentId },
+          },
+        ],
+      });
+
+      return !!familyRelation;
+    } catch (error) {
+      console.error('Error verifying family-student access:', error);
+      return false;
     }
   }
 }

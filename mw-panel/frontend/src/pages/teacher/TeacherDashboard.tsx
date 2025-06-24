@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Typography, Space, List, Avatar, Progress, Button, Spin, message, Alert } from 'antd'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Card, Row, Col, Statistic, Typography, Space, List, Avatar, Progress, Button, Spin, message, Alert, Badge, Tag } from 'antd'
 import {
   TeamOutlined,
   BookOutlined,
   CalendarOutlined,
   PlusOutlined,
   EyeOutlined,
+  BellOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import TeacherSchedulePage from './TeacherSchedulePage'
 import MessagesPage from '../communications/MessagesPage'
 import AttendancePage from './AttendancePage'
+import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Title, Text } = Typography
 
@@ -40,6 +45,7 @@ interface TeacherProfile {
 }
 
 const TeacherDashboardHome: React.FC = () => {
+  const navigate = useNavigate()
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +53,11 @@ const TeacherDashboardHome: React.FC = () => {
   // Real data state
   const [teacherClasses, setTeacherClasses] = useState<any[]>([])
   const [teacherSubjects, setTeacherSubjects] = useState<any[]>([])
+  const [pendingRequests, setPendingRequests] = useState<any[]>([])
+  const [loadingRequests, setLoadingRequests] = useState(false)
+  
+  // Use hook for sidebar badge updates
+  const { refreshCount } = usePendingAttendanceRequests()
 
   const stats = {
     totalClasses: teacherClasses.length,
@@ -116,6 +127,51 @@ const TeacherDashboardHome: React.FC = () => {
     }
   }
 
+  // Fetch pending attendance requests for teacher's classes
+  const fetchPendingAttendanceRequests = async () => {
+    if (!teacherClasses.length) return
+
+    try {
+      setLoadingRequests(true)
+      const allRequests: any[] = []
+
+      // Get pending requests for each of teacher's classes
+      for (const classGroup of teacherClasses) {
+        try {
+          const response = await apiClient.get(`/attendance/requests/group/${classGroup.id}/pending`)
+          allRequests.push(...response.data)
+        } catch (error) {
+          console.error(`Error fetching requests for class ${classGroup.id}:`, error)
+        }
+      }
+
+      setPendingRequests(allRequests)
+    } catch (error: any) {
+      console.error('Error fetching pending attendance requests:', error)
+    } finally {
+      setLoadingRequests(false)
+    }
+  }
+
+  // Handle quick approval/rejection of attendance requests
+  const handleQuickReviewRequest = async (requestId: string, status: 'approved' | 'rejected', note?: string) => {
+    try {
+      await apiClient.patch(`/attendance/requests/${requestId}/review`, {
+        status,
+        reviewNote: note || ''
+      })
+      
+      message.success(`Solicitud ${status === 'approved' ? 'aprobada' : 'rechazada'} correctamente`)
+      
+      // Refresh pending requests and sidebar badge
+      fetchPendingAttendanceRequests()
+      refreshCount()
+    } catch (error: any) {
+      console.error('Error reviewing request:', error)
+      message.error(error.response?.data?.message || 'Error al procesar la solicitud')
+    }
+  }
+
   useEffect(() => {
     fetchTeacherProfile()
   }, [])
@@ -126,6 +182,13 @@ const TeacherDashboardHome: React.FC = () => {
       fetchTeacherSubjects(teacherProfile.id)
     }
   }, [teacherProfile])
+
+  // Fetch attendance requests when teacher classes are loaded
+  useEffect(() => {
+    if (teacherClasses.length > 0) {
+      fetchPendingAttendanceRequests()
+    }
+  }, [teacherClasses])
 
   if (loading) {
     return (
@@ -351,9 +414,94 @@ const TeacherDashboardHome: React.FC = () => {
           </Card>
         </Col>
 
-        {/* Progress and Schedule */}
+        {/* Attendance Notifications and Progress */}
         <Col xs={24} lg={8}>
           <Space direction="vertical" size="large" className="w-full">
+            {/* Attendance Requests */}
+            <Card 
+              title={
+                <Space>
+                  <BellOutlined />
+                  Solicitudes de Asistencia
+                  {pendingRequests.length > 0 && (
+                    <Badge count={pendingRequests.length} size="small" />
+                  )}
+                </Space>
+              }
+              extra={
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  onClick={() => navigate('/teacher/attendance')}
+                >
+                  Ver Todas
+                </Button>
+              }
+              loading={loadingRequests}
+            >
+              {pendingRequests.length === 0 ? (
+                <div className="text-center py-4">
+                  <CheckCircleOutlined style={{ fontSize: '32px', color: '#52c41a' }} />
+                  <div className="mt-2">
+                    <Text type="secondary">No hay solicitudes pendientes</Text>
+                  </div>
+                </div>
+              ) : (
+                <List
+                  dataSource={pendingRequests.slice(0, 3)}
+                  renderItem={(request) => (
+                    <List.Item
+                      actions={[
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<CheckCircleOutlined />}
+                          onClick={() => handleQuickReviewRequest(request.id, 'approved')}
+                          style={{ color: '#52c41a' }}
+                        >
+                          Aprobar
+                        </Button>,
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<CloseCircleOutlined />}
+                          onClick={() => handleQuickReviewRequest(request.id, 'rejected')}
+                          danger
+                        >
+                          Rechazar
+                        </Button>
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar style={{ backgroundColor: '#faad14' }}>
+                            <ClockCircleOutlined />
+                          </Avatar>
+                        }
+                        title={`${request.student?.user?.profile?.firstName} ${request.student?.user?.profile?.lastName}`}
+                        description={
+                          <Space direction="vertical" size="small">
+                            <Space>
+                              <Tag color="blue">
+                                {request.type === 'absence' ? 'Ausencia' :
+                                 request.type === 'late_arrival' ? 'Retraso' : 'Salida Anticipada'}
+                              </Tag>
+                              <Text type="secondary" className="text-xs">
+                                {new Date(request.date).toLocaleDateString()}
+                              </Text>
+                            </Space>
+                            <Text className="text-xs" ellipsis title={request.reason}>
+                              {request.reason}
+                            </Text>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+            </Card>
+
             {/* Evaluation Progress */}
             <Card title="Progreso de Evaluaciones">
               <Space direction="vertical" className="w-full">
@@ -377,42 +525,6 @@ const TeacherDashboardHome: React.FC = () => {
                     <Text strong>0%</Text>
                   </div>
                   <Progress percent={0} />
-                </div>
-              </Space>
-            </Card>
-
-            {/* Schedule Today */}
-            <Card title="Horario de Hoy" extra={<CalendarOutlined />}>
-              <Space direction="vertical" className="w-full">
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-600">09:00</div>
-                    <div className="text-xs text-gray-500">10:00</div>
-                  </div>
-                  <div>
-                    <Text strong>3º A Primaria</Text>
-                    <div className="text-sm text-gray-500">Matemáticas - Aula 12</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-600">11:00</div>
-                    <div className="text-xs text-gray-500">12:00</div>
-                  </div>
-                  <div>
-                    <Text strong>4º B Primaria</Text>
-                    <div className="text-sm text-gray-500">Matemáticas - Aula 15</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-600">12:30</div>
-                    <div className="text-xs text-gray-500">13:30</div>
-                  </div>
-                  <div>
-                    <Text strong>5º A Primaria</Text>
-                    <div className="text-sm text-gray-500">Matemáticas - Aula 18</div>
-                  </div>
                 </div>
               </Space>
             </Card>

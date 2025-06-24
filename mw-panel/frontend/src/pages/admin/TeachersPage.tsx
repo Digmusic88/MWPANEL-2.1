@@ -565,11 +565,7 @@ const TeachersPage = () => {
               name="newPassword"
               label="Nueva Contraseña (opcional)"
               rules={[
-                { min: 8, message: 'Mínimo 8 caracteres' },
-                {
-                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-                  message: 'Debe contener al menos: una minúscula, una mayúscula, un número y un carácter especial'
-                }
+                { min: 8, message: 'Mínimo 8 caracteres' }
               ]}
             >
               <Input.Password placeholder="Dejar vacío para mantener la contraseña actual" />

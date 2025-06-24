@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -79,6 +80,18 @@ export class ClassGroupsController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async getAvailableCourses() {
     return this.classGroupsService.getAvailableCourses();
+  }
+
+  @Get('teacher/my-groups')
+  @ApiOperation({ summary: 'Obtener grupos de clase del profesor autenticado' })
+  @ApiResponse({ status: 200, description: 'Lista de grupos del profesor' })
+  @Roles(UserRole.TEACHER)
+  async getMyGroups(@Request() req) {
+    const userId = req.user?.id;
+    if (!userId) {
+      return [];
+    }
+    return this.classGroupsService.findByTeacherUserId(userId);
   }
 
   @Get(':id')

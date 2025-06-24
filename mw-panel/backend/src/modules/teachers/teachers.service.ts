@@ -158,9 +158,10 @@ export class TeachersService {
       teacher.user.isActive = isActive;
     }
 
-    // Handle password change if newPassword is provided
-    if (newPassword) {
-      teacher.user.password = newPassword;
+    // Handle password change if newPassword is provided - hash it manually
+    if (newPassword && newPassword.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      teacher.user.passwordHash = await bcrypt.hash(newPassword, 10);
     }
 
     // Update profile entity

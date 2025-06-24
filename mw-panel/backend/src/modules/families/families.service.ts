@@ -449,18 +449,21 @@ export class FamiliesService {
     }
 
     // Update password if provided (legacy field for backward compatibility)
-    if (password) {
-      user.password = password;
+    if (password && password.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      user.passwordHash = await bcrypt.hash(password, 10);
       userUpdated = true;
     }
 
     // Handle password change if newPassword is provided (preferred method)
-    if (newPassword) {
-      user.password = newPassword;
+    if (newPassword && newPassword.trim() !== '') {
+      const bcrypt = require('bcrypt');
+      user.passwordHash = await bcrypt.hash(newPassword, 10);
       userUpdated = true;
     }
 
     if (userUpdated) {
+      // Use queryRunner manager to maintain transaction consistency
       await queryRunner.manager.save(user);
     }
 
