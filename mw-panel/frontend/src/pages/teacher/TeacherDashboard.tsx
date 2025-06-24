@@ -11,6 +11,7 @@ import {
 import apiClient from '@services/apiClient'
 import TeacherSchedulePage from './TeacherSchedulePage'
 import MessagesPage from '../communications/MessagesPage'
+import AttendancePage from './AttendancePage'
 
 const { Title, Text } = Typography
 
@@ -475,6 +476,7 @@ const TeacherDashboard: React.FC = () => {
     <Routes>
       <Route index element={<TeacherDashboardHome />} />
       <Route path="schedule" element={<TeacherSchedulePage />} />
+      <Route path="attendance" element={<AttendancePage />} />
       <Route path="messages" element={<MessagesPage />} />
       {/* Add more teacher routes here */}
     </Routes>

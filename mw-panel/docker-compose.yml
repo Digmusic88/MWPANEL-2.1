@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${DB_USER:-mwpanel}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-mwpanel123}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
@@ -117,7 +117,9 @@ services:
     command: certonly --webroot --webroot-path=/usr/share/nginx/html --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
 
 volumes:
-  postgres_data:
+  pgdata:
+    external: true
+    name: mw-panel-pgdata
   redis_data:
   certbot-etc:
   certbot-var:

@@ -191,4 +191,66 @@ export class TeachersService {
     teacher.user.isActive = false;
     await this.usersRepository.save(teacher.user);
   }
+
+  async getTeacherDashboard(userId: string): Promise<any> {
+    // Find the teacher by user ID
+    const teacher = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+      relations: [
+        'user', 
+        'user.profile', 
+        'subjects', 
+        'tutoredClasses',
+        'tutoredClasses.students',
+        'tutoredClasses.students.user',
+        'tutoredClasses.students.user.profile'
+      ],
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Profesor no encontrado');
+    }
+
+    // Build dashboard data
+    const dashboardData = {
+      teacher: {
+        id: teacher.id,
+        employeeNumber: teacher.employeeNumber,
+        specialties: teacher.specialties,
+        user: {
+          id: teacher.user.id,
+          email: teacher.user.email,
+          role: teacher.user.role,
+          isActive: teacher.user.isActive,
+          profile: teacher.user.profile
+        }
+      },
+      summary: {
+        totalClasses: teacher.tutoredClasses?.length || 0,
+        totalStudents: teacher.tutoredClasses?.reduce((total, classGroup) => 
+          total + (classGroup.students?.length || 0), 0
+        ) || 0,
+        totalSubjects: teacher.subjects?.length || 0,
+      },
+      classes: teacher.tutoredClasses?.map(classGroup => ({
+        id: classGroup.id,
+        name: classGroup.name,
+        section: classGroup.section,
+        studentsCount: classGroup.students?.length || 0,
+        students: classGroup.students?.map(student => ({
+          id: student.id,
+          enrollmentNumber: student.enrollmentNumber,
+          name: `${student.user.profile.firstName} ${student.user.profile.lastName}`
+        })) || []
+      })) || [],
+      subjects: teacher.subjects || [],
+      recentActivity: {
+        // TODO: Add recent evaluations, attendance records, etc.
+        lastLogin: teacher.user.lastLoginAt,
+        updatedAt: teacher.updatedAt
+      }
+    };
+
+    return dashboardData;
+  }
 }

@@ -12,6 +12,7 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   MessageOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
@@ -245,6 +246,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             onClick: () => navigate('/teacher/schedule'),
           },
           {
+            key: 'attendance',
+            icon: <CalendarOutlined />,
+            label: 'Control de Asistencia',
+            onClick: () => navigate('/teacher/attendance'),
+          },
+          {
             key: 'evaluations',
             icon: <FileTextOutlined />,
             label: 'Evaluaciones',
@@ -302,6 +309,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <FileTextOutlined />,
             label: 'Calificaciones',
             onClick: () => navigate('/family/grades'),
+          },
+          {
+            key: 'attendance',
+            icon: <CalendarOutlined />,
+            label: 'Asistencia',
+            onClick: () => navigate('/family/attendance'),
           },
           createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]

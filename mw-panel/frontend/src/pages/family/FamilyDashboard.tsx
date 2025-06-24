@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import MessagesPage from '../communications/MessagesPage'
+import AttendancePage from './AttendancePage'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -504,6 +505,7 @@ const FamilyDashboard: React.FC = () => {
     <Routes>
       <Route index element={<FamilyDashboardHome />} />
       <Route path="messages" element={<MessagesPage />} />
+      <Route path="attendance" element={<AttendancePage />} />
       {/* Add more family routes here */}
     </Routes>
   )

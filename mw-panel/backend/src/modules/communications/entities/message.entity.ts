@@ -18,6 +18,7 @@ export enum MessageType {
   GROUP = 'group',             // Mensaje a un grupo de clase
   ANNOUNCEMENT = 'announcement', // Comunicado oficial
   NOTIFICATION = 'notification', // Notificación del sistema
+  ATTENDANCE_REQUEST = 'attendance_request', // Solicitud de asistencia
 }
 
 export enum MessagePriority {
@@ -104,6 +105,10 @@ export class Message {
 
   @Column({ nullable: true })
   parentMessageId: string;
+
+  // ID de la solicitud de asistencia asociada (para mensajes de tipo ATTENDANCE_REQUEST)
+  @Column({ nullable: true })
+  attendanceRequestId: string;
 
   // Respuestas a este mensaje
   @OneToMany(() => Message, (message) => message.parentMessage)
