@@ -79,7 +79,7 @@ export class Rubric {
   subjectAssignmentId: string;
 
   // Profesores con los que se ha compartido esta rúbrica
-  @Column('simple-array', { nullable: true })
+  @Column('text', { array: true, nullable: true })
   sharedWith: string[];
 
   @OneToMany(() => RubricCriterion, criterion => criterion.rubric, { cascade: true })

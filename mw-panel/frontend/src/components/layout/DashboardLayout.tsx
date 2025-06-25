@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Layout, Menu, Avatar, Dropdown, Typography, Button, Space, Badge } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Layout, Menu, Avatar, Dropdown, Typography, Button, Space, Badge, Drawer } from 'antd'
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -15,6 +15,7 @@ import {
   CalendarOutlined,
   ProjectOutlined,
   TableOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
@@ -22,6 +23,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import NotificationCenter from '../NotificationCenter'
 import { useUnreadMessages } from '../../hooks/useUnreadMessages'
 import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
+import { useResponsive } from '../../hooks/useResponsive'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -32,11 +34,32 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileMenuVisible, setMobileMenuVisible] = useState(false)
   const { user, logout } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
   const { unreadCount } = useUnreadMessages()
   const { pendingCount } = usePendingAttendanceRequests()
+  const { isMobile, isTablet, screenSize } = useResponsive()
+
+  // Auto-collapse sidebar on mobile/tablet
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true)
+      setMobileMenuVisible(false)
+    } else if (isTablet) {
+      setCollapsed(true)
+    } else {
+      setCollapsed(false)
+    }
+  }, [isMobile, isTablet])
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    if (isMobile) {
+      setMobileMenuVisible(false)
+    }
+  }, [location.pathname, isMobile])
 
   // Helper para crear item de menú con badge
   const createMessageMenuItem = (key: string, label: string, path: string) => ({
@@ -199,6 +222,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 onClick: () => navigate('/admin/class-schedules'),
               },
               {
+                key: 'calendar',
+                label: 'Calendario Escolar',
+                onClick: () => navigate('/admin/calendar'),
+              },
+              {
                 key: 'competencies',
                 label: 'Competencias',
                 onClick: () => navigate('/admin/competencies'),
@@ -293,6 +321,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Mi Horario',
             onClick: () => navigate('/teacher/schedule'),
           },
+          {
+            key: 'calendar',
+            icon: <CalendarOutlined />,
+            label: 'Calendario',
+            onClick: () => navigate('/teacher/calendar'),
+          },
           createAttendanceMenuItem('attendance', 'Control de Asistencia', '/teacher/attendance'),
           {
             key: 'activities',
@@ -317,6 +351,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <TableOutlined />,
             label: 'Rúbricas',
             onClick: () => navigate('/teacher/rubrics'),
+          },
+          {
+            key: 'shared-rubrics',
+            icon: <ShareAltOutlined />,
+            label: 'Rúbricas Compartidas',
+            onClick: () => navigate('/teacher/shared-rubrics'),
           },
           {
             key: 'evaluations',
@@ -366,6 +406,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             label: 'Horario',
             onClick: () => navigate('/student/schedule'),
           },
+          {
+            key: 'calendar',
+            icon: <CalendarOutlined />,
+            label: 'Calendario',
+            onClick: () => navigate('/student/calendar'),
+          },
         ]
 
       case UserRole.FAMILY:
@@ -375,7 +421,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             key: 'children',
             icon: <TeamOutlined />,
             label: 'Mis Hijos',
-            onClick: () => navigate('/family/children'),
+            onClick: () => navigate('/family/my-children'),
           },
           {
             key: 'grades',
@@ -400,6 +446,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <ProjectOutlined />,
             label: 'Tareas/Deberes',
             onClick: () => navigate('/family/tasks'),
+          },
+          {
+            key: 'calendar',
+            icon: <CalendarOutlined />,
+            label: 'Calendario',
+            onClick: () => navigate('/family/calendar'),
           },
           createMessageMenuItem('messages', 'Mensajes', '/family/messages'),
         ]
@@ -463,56 +515,103 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   }
 
+  // Toggle sidebar/mobile menu
+  const toggleMenu = () => {
+    if (isMobile) {
+      setMobileMenuVisible(!mobileMenuVisible)
+    } else {
+      setCollapsed(!collapsed)
+    }
+  }
+
+  // Sidebar content component
+  const SidebarContent = () => (
+    <>
+      <div className={`${isMobile ? 'p-3 border-b border-gray-200' : 'p-4 border-b border-gray-200'}`}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img
+              src="/logo.svg"
+              alt="Mundo World School"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          {(!collapsed || isMobile) && (
+            <div>
+              <Text strong className={`${isMobile ? 'text-sm' : 'text-base'}`}>Mundo World School</Text>
+              <div className="text-xs text-gray-500">
+                {getRoleLabel(user?.role!)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Menu
+        mode="inline"
+        selectedKeys={[location.pathname.split('/')[2] || 'dashboard']}
+        items={getMenuItems()}
+        className="border-r-0 h-full"
+        inlineIndent={isMobile ? 16 : 24}
+      />
+    </>
+  )
+
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed}
-        theme="light"
-        width={256}
-      >
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center">
-              <img
-                src="/logo.svg"
-                alt="Mundo World School"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            {!collapsed && (
-              <div>
-                <Text strong className="text-base">Mundo World School</Text>
-                <div className="text-xs text-gray-500">
-                  {getRoleLabel(user?.role!)}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Sider 
+          trigger={null} 
+          collapsible 
+          collapsed={collapsed}
+          theme="light"
+          width={256}
+          collapsedWidth={80}
+          breakpoint="lg"
+          style={{
+            overflow: 'auto',
+            height: '100vh',
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
+          }}
+        >
+          <SidebarContent />
+        </Sider>
+      )}
 
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname.split('/')[2] || 'dashboard']}
-          items={getMenuItems()}
-          className="border-r-0 h-full"
-        />
-      </Sider>
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          title={null}
+          placement="left"
+          onClose={() => setMobileMenuVisible(false)}
+          open={mobileMenuVisible}
+          closable={false}
+          width={280}
+          styles={{ body: { padding: 0 }, header: { display: 'none' } }}
+          style={{ zIndex: 1000 }}
+        >
+          <SidebarContent />
+        </Drawer>
+      )}
 
-      <Layout>
-        <Header className="bg-white px-4 flex items-center justify-between shadow-sm">
+      <Layout style={{ marginLeft: isMobile ? 0 : collapsed ? 80 : 256 }}>
+        <Header className={`bg-white shadow-sm ${isMobile ? 'px-3' : 'px-4'} flex items-center justify-between`}>
           <div className="flex items-center gap-4">
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
+              icon={isMobile ? <MenuUnfoldOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
+              onClick={toggleMenu}
               className="flex items-center justify-center w-8 h-8"
             />
           </div>
 
-          <Space size="middle">
+          <Space size={isMobile ? "small" : "middle"}>
             <NotificationCenter />
 
             <Dropdown 
@@ -520,26 +619,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               placement="bottomRight"
               arrow
             >
-              <div className="flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg hover:bg-gray-50">
+              <div className="flex items-center gap-2 cursor-pointer px-2 py-2 rounded-lg hover:bg-gray-50">
                 <Avatar 
-                  size="small" 
+                  size={isMobile ? "small" : "default"} 
                   icon={<UserOutlined />}
                   src={user?.profile?.avatarUrl}
                 />
-                <div className="text-left">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user?.profile?.fullName || user?.email}
+                {!isMobile && (
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-gray-900">
+                      {user?.profile?.fullName || user?.email}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {getRoleLabel(user?.role!)}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {getRoleLabel(user?.role!)}
-                  </div>
-                </div>
+                )}
               </div>
             </Dropdown>
           </Space>
         </Header>
 
-        <Content className="p-6 bg-gray-50">
+        <Content className={`${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-6'} bg-gray-50`}>
           <div className="fade-in">
             {children}
           </div>

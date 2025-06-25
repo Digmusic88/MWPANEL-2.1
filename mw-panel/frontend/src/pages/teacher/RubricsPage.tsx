@@ -37,6 +37,7 @@ import RubricImporter from '../../components/rubrics/RubricImporter';
 import RubricGrid from '../../components/rubrics/RubricGrid';
 import RubricSharingModal from '../../components/rubrics/RubricSharingModal';
 import RubricWeightEditor from '../../components/rubrics/RubricWeightEditor';
+import apiClient from '@services/apiClient';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -59,6 +60,7 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [templateFilter, setTemplateFilter] = useState<string>('all');
+  const [subjectAssignments, setSubjectAssignments] = useState<Array<{ id: string; subject: { name: string; code: string } }>>([]);
   
   // Modals
   const [editorVisible, setEditorVisible] = useState(false);
@@ -78,20 +80,45 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
   useEffect(() => {
     fetchRubrics(true); // Incluir templates
     fetchCurrentTeacherId();
+    fetchSubjectAssignments();
   }, []);
 
   // Obtener ID del profesor actual
   const fetchCurrentTeacherId = async () => {
     try {
-      const response = await fetch('/api/teachers/dashboard/my-dashboard', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
-      setCurrentTeacherId(data.teacher.id);
+      // Get current user info first to find teacher ID
+      const userResponse = await apiClient.get('/auth/me');
+      const currentUser = userResponse.data;
+      
+      // If not a teacher, show error
+      if (currentUser.role !== 'teacher') {
+        console.error('Acceso denegado: Solo profesores pueden acceder a este panel');
+        return;
+      }
+      
+      // Find teacher by user ID (same approach as TeacherDashboard)
+      const teachersResponse = await apiClient.get('/teachers');
+      const teachers = teachersResponse.data;
+      
+      const currentTeacher = teachers.find((teacher: any) => teacher.user.id === currentUser.id);
+      
+      if (currentTeacher) {
+        setCurrentTeacherId(currentTeacher.id);
+      } else {
+        console.error('No se encontró el perfil de profesor para este usuario');
+      }
     } catch (error) {
       console.error('Error al obtener ID del profesor:', error);
+    }
+  };
+
+  // Obtener asignaturas del profesor
+  const fetchSubjectAssignments = async () => {
+    try {
+      const response = await apiClient.get('/activities/teacher/subject-assignments');
+      setSubjectAssignments(response.data);
+    } catch (error: any) {
+      console.error('Error fetching subject assignments:', error);
     }
   };
 
@@ -547,11 +574,12 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
         onCancel={() => setEditorVisible(false)}
         onSuccess={handleOperationSuccess}
         editingRubric={editingRubric}
+        subjectAssignments={subjectAssignments}
       />
 
       <RubricImporter
         visible={importerVisible}
-        onCancel={() => setImporterVisible(false)}
+        onClose={() => setImporterVisible(false)}
         onSuccess={handleOperationSuccess}
       />
 

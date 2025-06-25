@@ -21,6 +21,12 @@ import MessagesPage from '../communications/MessagesPage'
 import AttendancePage from './AttendancePage'
 import ActivitiesPage from './ActivitiesPage'
 import TasksPage from './TasksPage'
+import FamilyGradesPage from './FamilyGradesPage'
+import FamilyCalendarPage from './FamilyCalendarPage'
+import FamilyProfilePage from './FamilyProfilePage'
+import FamilySettingsPage from './FamilySettingsPage'
+import MyChildrenPage from './MyChildrenPage'
+import CalendarWidget from '@components/calendar/CalendarWidget'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -309,7 +315,11 @@ const FamilyDashboardHome: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip="Cargando datos familiares..." />
+        <Spin size="large">
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
+            Cargando datos familiares...
+          </div>
+        </Spin>
       </div>
     )
   }
@@ -426,6 +436,47 @@ const FamilyDashboardHome: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* Quick Access Widget */}
+      <Card style={{ marginBottom: 16 }}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={18}>
+            <Space size="large">
+              <div>
+                <Title level={5} style={{ margin: 0, color: '#1890ff' }}>
+                  👨‍👩‍👧‍👦 Gestión Familiar Integral
+                </Title>
+                <Text type="secondary">
+                  Accede a la información completa de todos tus hijos en un solo lugar
+                </Text>
+              </div>
+            </Space>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Button 
+              type="primary" 
+              size="large" 
+              block
+              icon={<UserOutlined />}
+              onClick={() => navigate('my-children')}
+            >
+              Ver Mis Hijos
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Calendar Widget */}
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <CalendarWidget 
+            userRole="family"
+            height={700}
+            showEventList={true}
+            maxEvents={5}
+          />
+        </Col>
+      </Row>
 
       {/* Stats Cards */}
       <Row gutter={[16, 16]}>
@@ -854,11 +905,15 @@ const FamilyDashboard: React.FC = () => {
   return (
     <Routes>
       <Route index element={<FamilyDashboardHome />} />
+      <Route path="my-children" element={<MyChildrenPage />} />
+      <Route path="grades" element={<FamilyGradesPage />} />
       <Route path="messages" element={<MessagesPage />} />
       <Route path="attendance" element={<AttendancePage />} />
       <Route path="activities" element={<ActivitiesPage />} />
       <Route path="tasks" element={<TasksPage />} />
-      {/* Add more family routes here */}
+      <Route path="calendar" element={<FamilyCalendarPage />} />
+      <Route path="profile" element={<FamilyProfilePage />} />
+      <Route path="settings" element={<FamilySettingsPage />} />
     </Routes>
   )
 }

@@ -780,9 +780,9 @@ export class TasksService {
 
   // ==================== MÉTODOS PARA FAMILIAS ====================
 
-  async getFamilyTasks(familyId: string, query: FamilyTaskQueryDto): Promise<{ tasks: Task[]; total: number }> {
+  async getFamilyTasks(userId: string, query: FamilyTaskQueryDto): Promise<{ tasks: Task[]; total: number }> {
     // Verificar acceso familiar
-    const studentIds = await this.getFamilyStudentIds(familyId);
+    const studentIds = await this.getFamilyStudentIds(userId);
     
     if (studentIds.length === 0) {
       throw new NotFoundException('No se encontraron estudiantes asociados a esta familia');
@@ -858,11 +858,14 @@ export class TasksService {
     return { tasks, total };
   }
 
-  private async getFamilyStudentIds(familyId: string): Promise<string[]> {
-    const familyStudents = await this.familyStudentsRepository.find({
-      where: { familyId },
-      relations: ['student'],
-    });
+  private async getFamilyStudentIds(userId: string): Promise<string[]> {
+    const familyStudents = await this.familyStudentsRepository
+      .createQueryBuilder('fs')
+      .innerJoin('fs.family', 'family')
+      .innerJoin('family.primaryContact', 'primaryContact')
+      .leftJoin('family.secondaryContact', 'secondaryContact')
+      .where('primaryContact.id = :userId OR secondaryContact.id = :userId', { userId })
+      .getMany();
 
     return familyStudents.map(fs => fs.studentId);
   }
@@ -1505,5 +1508,54 @@ export class TasksService {
     
     // Default to resource for other types
     return AttachmentType.RESOURCE;
+  }
+
+  async getUpcomingDeadlines(teacherId: string) {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30); // Próximos 30 días
+
+    const tasks = await this.tasksRepository.find({
+      where: {
+        teacherId,
+        dueDate: Between(startDate, endDate),
+      },
+      relations: [
+        'subjectAssignment',
+        'subjectAssignment.subject',
+        'subjectAssignment.classGroup',
+        'submissions',
+        'submissions.student',
+        'submissions.student.user',
+        'submissions.student.user.profile',
+      ],
+      order: {
+        dueDate: 'ASC',
+      },
+    });
+
+    const now = new Date();
+
+    return tasks.map(task => {
+      const totalStudents = task.subjectAssignment?.classGroup?.students?.length || 0;
+      const submissionCount = task.submissions?.filter(s => s.status === 'submitted' || s.status === 'late').length || 0;
+      const isOverdue = task.dueDate < now;
+      const isDueToday = task.dueDate.toDateString() === now.toDateString();
+
+      let status: 'upcoming' | 'due_today' | 'overdue' = 'upcoming';
+      if (isOverdue) status = 'overdue';
+      else if (isDueToday) status = 'due_today';
+
+      return {
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate.toISOString(),
+        subject: task.subjectAssignment?.subject?.name || 'Sin asignatura',
+        classGroup: task.subjectAssignment?.classGroup?.name || 'Sin grupo',
+        submissionCount,
+        totalStudents,
+        status,
+      };
+    });
   }
 }

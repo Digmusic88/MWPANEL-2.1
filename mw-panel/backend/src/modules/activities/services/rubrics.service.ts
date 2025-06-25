@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not, Brackets } from 'typeorm';
+import { Repository, In, Not, Brackets, ArrayContains } from 'typeorm';
 import { Rubric, RubricStatus } from '../entities/rubric.entity';
 import { RubricCriterion } from '../entities/rubric-criterion.entity';
 import { RubricLevel } from '../entities/rubric-level.entity';
@@ -116,10 +116,12 @@ export class RubricsService {
   }
 
   async findAll(userId: string, includeTemplates: boolean = false): Promise<Rubric[]> {
+    console.log('[DEBUG] findAll - userId:', userId);
     const teacher = await this.getTeacherByUserId(userId);
+    console.log('[DEBUG] findAll - teacher found:', teacher.id);
 
     // Usar consulta directa más simple y confiable
-    return this.rubricsRepository.find({
+    const rubrics = await this.rubricsRepository.find({
       where: {
         teacherId: teacher.id,
         isActive: true,
@@ -137,6 +139,9 @@ export class RubricsService {
       ],
       order: { createdAt: 'DESC' }
     });
+    
+    console.log('[DEBUG] findAll - found rubrics:', rubrics.length);
+    return rubrics;
   }
 
   async findOne(id: string): Promise<Rubric> {
@@ -169,14 +174,27 @@ export class RubricsService {
       throw new ForbiddenException('No tienes permisos para editar esta rúbrica');
     }
 
-    // Validar pesos si se actualizan criterios
+    // Excluir arrays de relaciones para evitar conflictos cascade
+    const { criteria: _, levels: __, cells: ___, ...updateData } = updateRubricDto;
+
+    // Preparar los datos de actualización con los conteos
+    const finalUpdateData: any = { ...updateData };
+
+    // Validar pesos si se actualizan criterios (aunque no se actualizarán en esta operación básica)
     if (updateRubricDto.criteria) {
       if (!this.rubricUtilsService.validateCriteriaWeights(updateRubricDto.criteria)) {
         updateRubricDto.criteria = this.rubricUtilsService.normalizeCriteriaWeights(updateRubricDto.criteria);
       }
+      // Actualizar conteo de criterios si se proporcionan
+      finalUpdateData.criteriaCount = updateRubricDto.criteria.length;
     }
 
-    await this.rubricsRepository.update(id, updateRubricDto);
+    if (updateRubricDto.levels) {
+      // Actualizar conteo de niveles si se proporcionan
+      finalUpdateData.levelsCount = updateRubricDto.levels.length;
+    }
+
+    await this.rubricsRepository.update(id, finalUpdateData);
     return this.findOne(id);
   }
 
@@ -413,10 +431,13 @@ export class RubricsService {
   // ==================== MÉTODOS HELPER ====================
 
   private async getTeacherByUserId(userId: string): Promise<Teacher> {
+    console.log('[DEBUG] getTeacherByUserId - userId:', userId);
     const teacher = await this.teachersRepository.findOne({
       where: { user: { id: userId } },
       relations: ['user']
     });
+
+    console.log('[DEBUG] getTeacherByUserId - teacher found:', teacher ? teacher.id : 'null');
 
     if (!teacher) {
       throw new NotFoundException('Profesor no encontrado para este usuario');
@@ -511,5 +532,50 @@ export class RubricsService {
       name: `${colleague.user.profile.firstName} ${colleague.user.profile.lastName}`,
       email: colleague.user.email
     }));
+  }
+
+  async getSharedWithMe(userId: string): Promise<Rubric[]> {
+    try {
+      console.log('[DEBUG] getSharedWithMe - userId:', userId);
+      const teacher = await this.getTeacherByUserId(userId);
+      console.log('[DEBUG] getSharedWithMe - teacher found:', teacher.id);
+      
+      // Buscar rúbricas donde el teacherId del profesor actual esté en el array sharedWith
+      // Simplificamos las relaciones temporalmente para debug
+      const sharedRubrics = await this.rubricsRepository.find({
+        where: { 
+          isActive: true,
+          sharedWith: ArrayContains([teacher.id])
+        },
+        relations: [
+          'criteria',
+          'levels', 
+          'cells',
+          'teacher'
+        ],
+        order: { updatedAt: 'DESC' }
+      });
+
+      console.log('[DEBUG] getSharedWithMe - found shared rubrics:', sharedRubrics.length);
+
+      // Agregar información del profesor que compartió cada rúbrica (simplificado)
+      return sharedRubrics.map(rubric => ({
+        ...rubric,
+        sharedByTeacher: {
+          id: rubric.teacher.id,
+          user: {
+            profile: {
+              firstName: 'Profesor',
+              lastName: 'Compartido'
+            }
+          }
+        },
+        // Agregar fecha de cuando fue compartida (simulada)
+        sharedAt: rubric.updatedAt
+      }));
+    } catch (error) {
+      console.error('[ERROR] getSharedWithMe:', error);
+      throw error;
+    }
   }
 }

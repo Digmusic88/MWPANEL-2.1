@@ -21,8 +21,17 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://backend:3000',
+        target: 'http://172.20.0.4:3000',
         changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Proxy request to:', proxyReq.path);
+          });
+        }
       },
     },
   },

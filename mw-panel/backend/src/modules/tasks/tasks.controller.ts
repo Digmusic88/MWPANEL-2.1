@@ -454,4 +454,12 @@ export class TasksController {
   ) {
     return this.tasksService.sendBulkReminders(body.taskIds, req.user.sub, body.message);
   }
+
+  @Get('teacher/upcoming-deadlines')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener fechas límite próximas del profesor' })
+  @ApiResponse({ status: 200, description: 'Lista de fechas límite próximas' })
+  async getUpcomingDeadlines(@Request() req) {
+    return this.tasksService.getUpcomingDeadlines(req.user.sub);
+  }
 }

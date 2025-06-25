@@ -25,7 +25,6 @@ import RubricGrid from './RubricGrid';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 interface RubricEditorProps {
   visible: boolean;
@@ -316,190 +315,209 @@ const RubricEditor: React.FC<RubricEditorProps> = ({
         </Button>
       ]}
     >
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        <TabPane tab="Configuración" key="config">
-          <Form form={form} layout="vertical" onValuesChange={(changedFields) => {
-            if (changedFields.criteriaCount) {
-              updateCriteriaCount(changedFields.criteriaCount);
-            }
-            if (changedFields.levelsCount) {
-              updateLevelsCount(changedFields.levelsCount);
-            }
-          }}>
-            {/* Información básica */}
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="name"
-                  label="Nombre de la Rúbrica"
-                  rules={[{ required: true, message: 'El nombre es obligatorio' }]}
-                >
-                  <Input placeholder="Ej: Rúbrica de Redacción" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="subjectAssignmentId" label="Asignatura">
-                  <Select placeholder="Seleccionar asignatura (opcional)" allowClear>
-                    {subjectAssignments.map(assignment => (
-                      <Option key={assignment.id} value={assignment.id}>
-                        {assignment.subject.name} ({assignment.subject.code})
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item name="description" label="Descripción">
-              <TextArea 
-                rows={2} 
-                placeholder="Descripción opcional de la rúbrica"
-              />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col span={6}>
-                <Form.Item name="maxScore" label="Puntuación Máxima">
-                  <InputNumber min={1} max={1000} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item name="criteriaCount" label="Número de Criterios">
-                  <InputNumber min={1} max={20} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item name="levelsCount" label="Número de Niveles">
-                  <InputNumber min={1} max={10} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item name="isTemplate" label="Es Plantilla" valuePropName="checked">
-                  <Switch />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item name="isVisibleToFamilies" label="Visible para Familias" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-
-            <Divider>Criterios de Evaluación</Divider>
-            
-            {criteria.map((criterion, index) => (
-              <Card key={index} size="small" style={{ marginBottom: '8px' }}>
-                <Row gutter={8} align="middle">
-                  <Col span={8}>
-                    <Input
-                      value={criterion.name}
-                      onChange={(e) => updateCriterion(index, { name: e.target.value })}
-                      placeholder="Nombre del criterio"
-                      size="small"
-                    />
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'config',
+            label: 'Configuración',
+            children: (
+              <Form form={form} layout="vertical" onValuesChange={(changedFields) => {
+                if (changedFields.criteriaCount) {
+                  updateCriteriaCount(changedFields.criteriaCount);
+                }
+                if (changedFields.levelsCount) {
+                  updateLevelsCount(changedFields.levelsCount);
+                }
+              }}>
+                {/* Información básica */}
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="name"
+                      label="Nombre de la Rúbrica"
+                      rules={[{ required: true, message: 'El nombre es obligatorio' }]}
+                    >
+                      <Input placeholder="Ej: Rúbrica de Redacción" />
+                    </Form.Item>
                   </Col>
-                  <Col span={10}>
-                    <Input
-                      value={criterion.description}
-                      onChange={(e) => updateCriterion(index, { description: e.target.value })}
-                      placeholder="Descripción (opcional)"
-                      size="small"
-                    />
-                  </Col>
-                  <Col span={4}>
-                    <InputNumber
-                      value={Math.round(criterion.weight * 100)}
-                      onChange={(value) => updateCriterion(index, { weight: (value || 0) / 100 })}
-                      min={1}
-                      max={100}
-                      formatter={value => `${value}%`}
-                      parser={(value) => parseInt(value!.replace('%', ''), 10)}
-                      size="small"
-                      style={{ width: '100%' }}
-                    />
-                  </Col>
-                  <Col span={2}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      #{index + 1}
-                    </Text>
+                  <Col span={12}>
+                    <Form.Item name="subjectAssignmentId" label="Asignatura">
+                      <Select placeholder="Seleccionar asignatura (opcional)" allowClear>
+                        {/* Mostrar la asignatura actual de la rúbrica si existe */}
+                        {editingRubric?.subjectAssignmentId && 
+                         !subjectAssignments.some(sa => sa.id === editingRubric.subjectAssignmentId) && (
+                          <Option key={editingRubric.subjectAssignmentId} value={editingRubric.subjectAssignmentId}>
+                            Asignatura Existente
+                          </Option>
+                        )}
+                        {/* Mostrar asignaturas disponibles del profesor */}
+                        {subjectAssignments.map(assignment => (
+                          <Option key={assignment.id} value={assignment.id}>
+                            {assignment.subject.name} ({assignment.subject.code})
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
                   </Col>
                 </Row>
-              </Card>
-            ))}
 
-            <Divider>Niveles de Desempeño</Divider>
-            
-            <Row gutter={8}>
-              {levels.map((level, index) => (
-                <Col key={index} span={24 / levels.length}>
-                  <Card size="small" style={{ marginBottom: '8px' }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            backgroundColor: level.color,
-                            borderRadius: '2px',
-                            border: '1px solid #d9d9d9'
-                          }}
-                        />
+                <Form.Item name="description" label="Descripción">
+                  <TextArea 
+                    rows={2} 
+                    placeholder="Descripción opcional de la rúbrica"
+                  />
+                </Form.Item>
+
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Form.Item name="maxScore" label="Puntuación Máxima">
+                      <InputNumber min={1} max={1000} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="criteriaCount" label="Número de Criterios">
+                      <InputNumber min={1} max={20} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="levelsCount" label="Número de Niveles">
+                      <InputNumber min={1} max={10} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="isTemplate" label="Es Plantilla" valuePropName="checked">
+                      <Switch />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item name="isVisibleToFamilies" label="Visible para Familias" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+
+                <Divider>Criterios de Evaluación</Divider>
+                
+                {criteria.map((criterion, index) => (
+                  <Card key={index} size="small" style={{ marginBottom: '8px' }}>
+                    <Row gutter={8} align="middle">
+                      <Col span={8}>
                         <Input
-                          value={level.name}
-                          onChange={(e) => updateLevel(index, { name: e.target.value })}
-                          placeholder="Nombre"
+                          value={criterion.name}
+                          onChange={(e) => updateCriterion(index, { name: e.target.value })}
+                          placeholder="Nombre del criterio"
                           size="small"
-                          style={{ flex: 1 }}
                         />
-                      </div>
-                      
-                      <InputNumber
-                        value={level.scoreValue}
-                        onChange={(value) => updateLevel(index, { scoreValue: value || 0 })}
-                        min={0}
-                        max={10}
-                        size="small"
-                        style={{ width: '100%' }}
-                        addonAfter="pts"
-                      />
-                      
-                      <Input
-                        value={level.description}
-                        onChange={(e) => updateLevel(index, { description: e.target.value })}
-                        placeholder="Descripción"
-                        size="small"
-                      />
-                    </Space>
+                      </Col>
+                      <Col span={10}>
+                        <Input
+                          value={criterion.description}
+                          onChange={(e) => updateCriterion(index, { description: e.target.value })}
+                          placeholder="Descripción (opcional)"
+                          size="small"
+                        />
+                      </Col>
+                      <Col span={4}>
+                        <InputNumber
+                          value={Math.round(criterion.weight * 100)}
+                          onChange={(value) => updateCriterion(index, { weight: (value || 0) / 100 })}
+                          min={1}
+                          max={100}
+                          formatter={value => `${value}%`}
+                          parser={(value) => parseInt(value!.replace('%', ''), 10)}
+                          size="small"
+                          style={{ width: '100%' }}
+                        />
+                      </Col>
+                      <Col span={2}>
+                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                          #{index + 1}
+                        </Text>
+                      </Col>
+                    </Row>
                   </Card>
-                </Col>
-              ))}
-            </Row>
+                ))}
 
-            <Alert
-              message="Recomendación"
-              description="Los pesos de los criterios deben sumar 100%. Los colores se generan automáticamente de rojo (bajo) a verde (alto)."
-              type="info"
-              showIcon
-              style={{ marginTop: '16px' }}
-            />
-          </Form>
-        </TabPane>
+                <Divider>Niveles de Desempeño</Divider>
+                
+                <Row gutter={8}>
+                  {levels.map((level, index) => (
+                    <Col key={index} span={24 / levels.length}>
+                      <Card size="small" style={{ marginBottom: '8px' }}>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                backgroundColor: level.color,
+                                borderRadius: '2px',
+                                border: '1px solid #d9d9d9'
+                              }}
+                            />
+                            <Input
+                              value={level.name}
+                              onChange={(e) => updateLevel(index, { name: e.target.value })}
+                              placeholder="Nombre"
+                              size="small"
+                              style={{ flex: 1 }}
+                            />
+                          </div>
+                          
+                          <InputNumber
+                            value={level.scoreValue}
+                            onChange={(value) => updateLevel(index, { scoreValue: value || 0 })}
+                            min={0}
+                            max={10}
+                            size="small"
+                            style={{ width: '100%' }}
+                            addonAfter="pts"
+                          />
+                          
+                          <Input
+                            value={level.description}
+                            onChange={(e) => updateLevel(index, { description: e.target.value })}
+                            placeholder="Descripción"
+                            size="small"
+                          />
+                        </Space>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
 
-        <TabPane tab="Vista Previa" key="preview">
-          {previewRubric ? (
-            <RubricGrid
-              rubric={previewRubric}
-              editable={false}
-              viewMode="view"
-            />
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <Text type="secondary">
-                Completa la configuración y haz clic en "Vista Previa" para ver cómo quedará la rúbrica
-              </Text>
-            </div>
-          )}
-        </TabPane>
-      </Tabs>
+                <Alert
+                  message="Recomendación"
+                  description="Los pesos de los criterios deben sumar 100%. Los colores se generan automáticamente de rojo (bajo) a verde (alto)."
+                  type="info"
+                  showIcon
+                  style={{ marginTop: '16px' }}
+                />
+              </Form>
+            )
+          },
+          {
+            key: 'preview',
+            label: 'Vista Previa',
+            children: (
+              previewRubric ? (
+                <RubricGrid
+                  rubric={previewRubric}
+                  editable={false}
+                  viewMode="view"
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <Text type="secondary">
+                    Completa la configuración y haz clic en "Vista Previa" para ver cómo quedará la rúbrica
+                  </Text>
+                </div>
+              )
+            )
+          }
+        ]}
+      />
     </Modal>
   );
 };

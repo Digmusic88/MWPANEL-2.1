@@ -6,7 +6,7 @@ export class AddSharedWithToRubrics1735130000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
             ALTER TABLE "rubrics" 
-            ADD COLUMN "sharedWith" text[]
+            ADD COLUMN "sharedWith" text[] DEFAULT NULL
         `);
         
         // Crear índice para mejorar las consultas de rúbricas compartidas

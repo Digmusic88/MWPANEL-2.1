@@ -42,7 +42,6 @@ import {
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { Panel } = Collapse;
 
 interface FamilyTasksQuery {
   page?: number;
@@ -98,13 +97,14 @@ const FamilyTasksPage: React.FC = () => {
   const fetchStudents = async () => {
     try {
       const response = await apiClient.get('/families/my-children');
-      setStudents(response.data);
-      if (response.data.length > 0 && !selectedStudent) {
+      setStudents(response.data || []);
+      if (response.data && response.data.length > 0 && !selectedStudent) {
         setSelectedStudent(response.data[0].id);
         setFilters(prev => ({ ...prev, studentId: response.data[0].id }));
       }
     } catch (error: any) {
       console.error('Error fetching students:', error);
+      setStudents([]);
     }
   };
 
@@ -119,10 +119,12 @@ const FamilyTasksPage: React.FC = () => {
       });
 
       const response = await apiClient.get(`/tasks/family/tasks?${params}`);
-      setTasks(response.data.tasks);
-      setTotal(response.data.total);
+      setTasks(response.data.tasks || []);
+      setTotal(response.data.total || 0);
     } catch (error: any) {
       console.error('Error fetching tasks:', error);
+      setTasks([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -133,12 +135,18 @@ const FamilyTasksPage: React.FC = () => {
       const statsPromises = students.map(student =>
         apiClient.get(`/tasks/family/student/${student.id}/statistics`)
           .then(response => ({ studentId: student.id, stats: response.data }))
+          .catch(error => {
+            console.error(`Error fetching statistics for student ${student.id}:`, error);
+            return { studentId: student.id, stats: null };
+          })
       );
       
       const results = await Promise.all(statsPromises);
       const statsMap: { [studentId: string]: StudentTaskStatistics } = {};
       results.forEach(({ studentId, stats }) => {
-        statsMap[studentId] = stats;
+        if (stats) {
+          statsMap[studentId] = stats;
+        }
       });
       setStatistics(statsMap);
     } catch (error: any) {
@@ -317,40 +325,40 @@ const FamilyTasksPage: React.FC = () => {
       };
     });
 
+    const collapseItems = studentTasks.map(({ student, tasks: studentTasks, stats }) => ({
+      key: student.id,
+      label: (
+        <div className="flex justify-between items-center w-full mr-4">
+          <div className="flex items-center gap-3">
+            <Avatar icon={<UserOutlined />} />
+            <span className="font-medium">
+              {student.user.profile.firstName} {student.user.profile.lastName}
+            </span>
+          </div>
+          {stats && (
+            <div className="flex gap-4 text-sm">
+              <span className="text-blue-600">Total: {stats.totalAssigned}</span>
+              <span className="text-orange-600">Pendientes: {stats.pending}</span>
+              <span className="text-green-600">Entregadas: {stats.submitted}</span>
+              {stats.averageGrade > 0 && (
+                <span className="text-purple-600">Promedio: {stats.averageGrade.toFixed(1)}</span>
+              )}
+            </div>
+          )}
+        </div>
+      ),
+      children: studentTasks.length > 0 ? (
+        studentTasks.map(task => renderTaskCard(task, student.id))
+      ) : (
+        <Empty description="No hay tareas asignadas" />
+      )
+    }));
+
     return (
-      <Collapse defaultActiveKey={students.map(s => s.id)}>
-        {studentTasks.map(({ student, tasks: studentTasks, stats }) => (
-          <Panel
-            key={student.id}
-            header={
-              <div className="flex justify-between items-center w-full mr-4">
-                <div className="flex items-center gap-3">
-                  <Avatar icon={<UserOutlined />} />
-                  <span className="font-medium">
-                    {student.user.profile.firstName} {student.user.profile.lastName}
-                  </span>
-                </div>
-                {stats && (
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-blue-600">Total: {stats.totalAssigned}</span>
-                    <span className="text-orange-600">Pendientes: {stats.pending}</span>
-                    <span className="text-green-600">Entregadas: {stats.submitted}</span>
-                    {stats.averageGrade > 0 && (
-                      <span className="text-purple-600">Promedio: {stats.averageGrade.toFixed(1)}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            }
-          >
-            {studentTasks.length > 0 ? (
-              studentTasks.map(task => renderTaskCard(task, student.id))
-            ) : (
-              <Empty description="No hay tareas asignadas" />
-            )}
-          </Panel>
-        ))}
-      </Collapse>
+      <Collapse 
+        defaultActiveKey={students.map(s => s.id)}
+        items={collapseItems}
+      />
     );
   };
 

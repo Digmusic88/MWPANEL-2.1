@@ -1,0 +1,30 @@
+import { AcademicRecord } from './academic-record.entity';
+import { SubjectAssignment } from '../../students/entities/subject-assignment.entity';
+import { AcademicRecordGrade } from './academic-record-grade.entity';
+import { AcademicPeriod, EntryType } from './academic-record.types';
+export declare class AcademicRecordEntry {
+    id: string;
+    type: EntryType;
+    period: AcademicPeriod;
+    title: string;
+    description: string;
+    entryDate: Date;
+    numericValue: number;
+    letterGrade: string;
+    comments: string;
+    credits: number;
+    isPassing: boolean;
+    isExempt: boolean;
+    attachments: string;
+    enteredBy: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    academicRecordId: string;
+    academicRecord: AcademicRecord;
+    subjectAssignmentId: string;
+    subjectAssignment: SubjectAssignment;
+    grades: AcademicRecordGrade[];
+    get gradePoint(): number;
+    get displayGrade(): string;
+}

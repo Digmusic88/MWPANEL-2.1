@@ -67,7 +67,26 @@ export class RubricsController {
     @Query('includeTemplates') includeTemplates?: boolean,
   ): Promise<Rubric[]> {
     const userId = req.user.sub || req.user.id;
+    console.log('[DEBUG] RubricsController findAll - userId:', userId, 'includeTemplates:', includeTemplates);
     return this.rubricsService.findAll(userId, includeTemplates === true);
+  }
+
+  @Get('shared-with-me')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener rúbricas compartidas conmigo' })
+  @ApiResponse({ status: 200, description: 'Lista de rúbricas compartidas conmigo', type: [Rubric] })
+  async getSharedWithMe(@Request() req: any): Promise<Rubric[]> {
+    const userId = req.user.sub || req.user.id;
+    return this.rubricsService.getSharedWithMe(userId);
+  }
+
+  @Get('colleagues')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener lista de profesores colegas para compartir' })
+  @ApiResponse({ status: 200, description: 'Lista de profesores', type: Array })
+  async getColleagues(@Request() req: any) {
+    const userId = req.user.sub || req.user.id;
+    return this.rubricsService.getColleagues(userId);
   }
 
   @Get(':id')
@@ -239,14 +258,5 @@ export class RubricsController {
   ): Promise<Rubric> {
     const userId = req.user.sub || req.user.id;
     return this.rubricsService.unshareRubric(id, unshareDto.teacherIds, userId);
-  }
-
-  @Get('colleagues')
-  @Roles(UserRole.TEACHER)
-  @ApiOperation({ summary: 'Obtener lista de profesores colegas para compartir' })
-  @ApiResponse({ status: 200, description: 'Lista de profesores', type: Array })
-  async getColleagues(@Request() req: any) {
-    const userId = req.user.sub || req.user.id;
-    return this.rubricsService.getColleagues(userId);
   }
 }

@@ -101,4 +101,12 @@ export class CalendarController {
     await this.calendarService.remove(id, req.user.id);
     return { message: 'Evento eliminado exitosamente' };
   }
+
+  // ==================== TEACHER SPECIFIC ENDPOINTS ====================
+
+  @Get('teacher/class-events')
+  @Roles(UserRole.TEACHER)
+  async getTeacherClassEvents(@Request() req: any) {
+    return this.calendarService.getTeacherClassEvents(req.user.id);
+  }
 }

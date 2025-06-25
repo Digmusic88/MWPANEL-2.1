@@ -34,6 +34,15 @@ export class EvaluationsController {
     return this.evaluationsService.findAll();
   }
 
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Obtener estadísticas de evaluaciones' })
+  @ApiResponse({ status: 200, description: 'Estadísticas obtenidas exitosamente' })
+  getStats() {
+    return this.evaluationsService.getEvaluationStats();
+  }
+
   @Get('student/:studentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.FAMILY)

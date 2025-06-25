@@ -25,10 +25,9 @@ import {
   FileTextOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
-import { useRubrics, ImportRubricData } from '@/hooks/useRubrics';
+import { useRubrics, ImportRubricData, Rubric } from '../../hooks/useRubrics';
 import RubricGrid from './RubricGrid';
-import { Rubric } from '@/types/rubric';
-import apiClient from '@/services/apiClient';
+import apiClient from '../../services/apiClient';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;

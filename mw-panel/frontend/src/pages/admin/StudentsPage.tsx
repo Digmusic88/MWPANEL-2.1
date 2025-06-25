@@ -36,6 +36,9 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import apiClient from '@services/apiClient'
 import StudentEvaluations from '../../components/StudentEvaluations'
+import ResponsiveTable, { useResponsiveColumns } from '../../components/common/ResponsiveTable'
+import ResponsiveModal from '../../components/common/ResponsiveModal'
+import { useResponsive } from '../../hooks/useResponsive'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -85,6 +88,7 @@ const StudentsPage: React.FC = () => {
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
   const [evaluatingStudent, setEvaluatingStudent] = useState<Student | null>(null)
   const [form] = Form.useForm()
+  const { isMobile } = useResponsive()
 
   // Fetch students
   const fetchStudents = async () => {
@@ -167,8 +171,8 @@ const StudentsPage: React.FC = () => {
     return matchesSearch && matchesStatus
   })
 
-  // Table columns
-  const columns: ColumnsType<Student> = [
+  // Table columns with responsive configuration
+  const baseColumns: (ColumnsType<Student>[number] & { hideOnMobile?: boolean; hideOnTablet?: boolean })[] = [
     {
       title: 'Estudiante',
       key: 'student',
@@ -177,13 +181,13 @@ const StudentsPage: React.FC = () => {
           <Avatar 
             src={record.user.profile.avatarUrl} 
             icon={<UserOutlined />}
-            size="large"
+            size={isMobile ? 'default' : 'large'}
           />
           <div>
-            <div className="font-medium">
+            <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
               {record.user.profile.firstName} {record.user.profile.lastName}
             </div>
-            <Text type="secondary" className="text-sm">
+            <Text type="secondary" className="text-xs">
               {record.user.email}
             </Text>
           </div>
@@ -194,25 +198,29 @@ const StudentsPage: React.FC = () => {
       title: 'Número de Matrícula',
       dataIndex: 'enrollmentNumber',
       key: 'enrollmentNumber',
+      hideOnMobile: true,
       render: (number) => (
-        <Tag color="blue">{number}</Tag>
+        <Tag color="blue" className="text-xs">{number}</Tag>
       ),
     },
     {
       title: 'Nivel/Curso',
       key: 'education',
+      hideOnMobile: false,
       render: (_, record) => (
         <div>
           {record.educationalLevel && (
-            <div className="font-medium">{record.educationalLevel.name}</div>
+            <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+              {record.educationalLevel.name}
+            </div>
           )}
           {record.course && (
-            <Text type="secondary" className="text-sm">
+            <Text type="secondary" className="text-xs">
               {record.course.name}
             </Text>
           )}
           {!record.educationalLevel && !record.course && (
-            <Text type="secondary">Sin asignar</Text>
+            <Text type="secondary" className="text-xs">Sin asignar</Text>
           )}
         </div>
       ),
@@ -220,8 +228,12 @@ const StudentsPage: React.FC = () => {
     {
       title: 'Estado',
       key: 'status',
+      hideOnTablet: true,
       render: (_, record) => (
-        <Tag color={record.user.isActive ? 'green' : 'red'}>
+        <Tag 
+          color={record.user.isActive ? 'green' : 'red'}
+          className="text-xs"
+        >
           {record.user.isActive ? 'Activo' : 'Inactivo'}
         </Tag>
       ),
@@ -230,16 +242,23 @@ const StudentsPage: React.FC = () => {
       title: 'Fecha de Nacimiento',
       dataIndex: 'birthDate',
       key: 'birthDate',
-      render: (date) => new Date(date).toLocaleDateString('es-ES'),
+      hideOnMobile: true,
+      hideOnTablet: true,
+      render: (date) => (
+        <Text className="text-sm">
+          {new Date(date).toLocaleDateString('es-ES')}
+        </Text>
+      ),
     },
     {
       title: 'Acciones',
       key: 'actions',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="Ver detalles">
+          <Tooltip title="Ver">
             <Button 
               type="text" 
+              size={isMobile ? 'small' : 'middle'}
               icon={<EyeOutlined />}
               onClick={() => handleViewStudent(record)}
             />
@@ -247,28 +266,36 @@ const StudentsPage: React.FC = () => {
           <Tooltip title="Editar">
             <Button 
               type="text" 
+              size={isMobile ? 'small' : 'middle'}
               icon={<EditOutlined />}
               onClick={() => handleEditStudent(record)}
             />
           </Tooltip>
-          <Tooltip title="Eliminar">
-            <Popconfirm
-              title="¿Estás seguro de eliminar este estudiante?"
-              onConfirm={() => handleDeleteStudent(record.id)}
-              okText="Sí"
-              cancelText="No"
-            >
-              <Button 
-                type="text" 
-                danger 
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
-          </Tooltip>
+          {!isMobile && (
+            <Tooltip title="Eliminar">
+              <Popconfirm
+                title="¿Estás seguro?"
+                description="Se eliminará este estudiante"
+                onConfirm={() => handleDeleteStudent(record.id)}
+                okText="Sí"
+                cancelText="No"
+              >
+                <Button 
+                  type="text" 
+                  danger 
+                  size="small"
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
   ]
+
+  // Get responsive columns
+  const columns = useResponsiveColumns(baseColumns)
 
   // Handlers
   const handleViewStudent = (student: Student) => {
@@ -375,7 +402,7 @@ const StudentsPage: React.FC = () => {
 
       {/* Filters */}
       <Card>
-        <div className="flex gap-4 items-center flex-wrap">
+        <div className={`flex gap-4 items-center ${isMobile ? 'flex-col' : 'flex-wrap'}`}>
           <AutoComplete
             placeholder="Buscar estudiantes..."
             value={searchText}
@@ -383,7 +410,7 @@ const StudentsPage: React.FC = () => {
             onSearch={handleSearchChange}
             onSelect={handleSearchSelect}
             onChange={handleSearchChange}
-            className="w-64"
+            className={isMobile ? 'w-full' : 'w-64'}
             allowClear
           >
             <Input prefix={<SearchOutlined />} />
@@ -391,14 +418,14 @@ const StudentsPage: React.FC = () => {
           <Select
             value={statusFilter}
             onChange={setStatusFilter}
-            className="w-40"
+            className={isMobile ? 'w-full' : 'w-40'}
             suffixIcon={<FilterOutlined />}
           >
             <Option value="all">Todos</Option>
             <Option value="active">Activos</Option>
             <Option value="inactive">Inactivos</Option>
           </Select>
-          <Text type="secondary">
+          <Text type="secondary" className={isMobile ? 'text-center' : ''}>
             {filteredStudents.length} estudiante(s) encontrado(s)
           </Text>
         </div>
@@ -406,18 +433,81 @@ const StudentsPage: React.FC = () => {
 
       {/* Students Table */}
       <Card>
-        <Table
+        <ResponsiveTable
           columns={columns}
           dataSource={filteredStudents}
           loading={loading}
           rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} de ${total} estudiantes`,
-          }}
+          mobileTitle="Estudiantes"
+          mobileCardRender={(record, index) => (
+            <Card 
+              key={record.id}
+              size="small"
+              className="mb-3 shadow-sm"
+            >
+              <Space direction="vertical" size="small" className="w-full">
+                {/* Header with avatar and name */}
+                <div className="flex items-center gap-3">
+                  <Avatar 
+                    src={record.user.profile.avatarUrl} 
+                    icon={<UserOutlined />}
+                    size="large"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-base">
+                      {record.user.profile.firstName} {record.user.profile.lastName}
+                    </div>
+                    <Text type="secondary" className="text-sm">
+                      {record.user.email}
+                    </Text>
+                  </div>
+                  <Tag 
+                    color={record.user.isActive ? 'green' : 'red'}
+                    className="text-xs"
+                  >
+                    {record.user.isActive ? 'Activo' : 'Inactivo'}
+                  </Tag>
+                </div>
+                
+                {/* Education info */}
+                {(record.educationalLevel || record.course) && (
+                  <div className="flex justify-between text-sm">
+                    <Text type="secondary">Nivel/Curso:</Text>
+                    <div className="text-right">
+                      {record.educationalLevel && (
+                        <div className="font-medium">{record.educationalLevel.name}</div>
+                      )}
+                      {record.course && (
+                        <Text type="secondary" className="text-xs">
+                          {record.course.name}
+                        </Text>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="flex justify-center gap-2 pt-2 border-t border-gray-100">
+                  <Button 
+                    type="text" 
+                    size="small"
+                    icon={<EyeOutlined />}
+                    onClick={() => handleViewStudent(record)}
+                  >
+                    Ver
+                  </Button>
+                  <Button 
+                    type="text" 
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEditStudent(record)}
+                  >
+                    Editar
+                  </Button>
+                </div>
+              </Space>
+            </Card>
+          )}
         />
       </Card>
 
@@ -425,7 +515,8 @@ const StudentsPage: React.FC = () => {
       <Drawer
         title="Detalles del Estudiante"
         placement="right"
-        size="large"
+        size={isMobile ? 'default' : 'large'}
+        width={isMobile ? '100%' : 720}
         onClose={handleDetailDrawerClose}
         open={isDetailDrawerVisible}
         extra={
@@ -592,12 +683,15 @@ const StudentsPage: React.FC = () => {
       </Drawer>
 
       {/* Add/Edit Student Modal */}
-      <Modal
+      <ResponsiveModal
         title={editingStudent ? 'Editar Estudiante' : 'Nuevo Estudiante'}
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
-        width={600}
+        desktopWidth={600}
+        tabletWidth="90%"
+        mobileAsDrawer={true}
+        drawerPlacement="bottom"
       >
         <Form
           form={form}
@@ -605,7 +699,7 @@ const StudentsPage: React.FC = () => {
           onFinish={handleSubmit}
           className="mt-4"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-4'}`}>
             <Form.Item
               name="firstName"
               label="Nombre"
@@ -658,7 +752,7 @@ const StudentsPage: React.FC = () => {
             </Form.Item>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-4'}`}>
             <Form.Item
               name="dni"
               label="DNI/NIE"
@@ -673,7 +767,7 @@ const StudentsPage: React.FC = () => {
             </Form.Item>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-4'}`}>
             <Form.Item
               name="enrollmentNumber"
               label="Número de Matrícula"
@@ -693,16 +787,16 @@ const StudentsPage: React.FC = () => {
             </Form.Item>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={handleCancel}>
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-end gap-2'} mt-6`}>
+            <Button onClick={handleCancel} block={isMobile}>
               Cancelar
             </Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" block={isMobile}>
               {editingStudent ? 'Actualizar' : 'Crear'} Estudiante
             </Button>
           </div>
         </Form>
-      </Modal>
+      </ResponsiveModal>
 
       {/* Student Evaluations Modal */}
       <StudentEvaluations

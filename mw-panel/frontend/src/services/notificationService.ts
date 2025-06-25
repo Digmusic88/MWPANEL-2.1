@@ -1,24 +1,38 @@
-// Service for showing notifications
-let showError = (message: string) => console.error('Error:', message);
-let showSuccess = (message: string) => console.log('Success:', message);
-let showWarning = (message: string) => console.warn('Warning:', message);
-let showInfo = (message: string) => console.info('Info:', message);
+import { message } from 'antd'
+
+// Queue for notifications to show when app is ready
+let notificationQueue: Array<{ type: keyof typeof message; content: string }> = []
+let isAppReady = false
 
 export const notificationService = {
-  setHandlers: (handlers: {
-    error: (message: string) => void;
-    success: (message: string) => void;
-    warning: (message: string) => void;
-    info: (message: string) => void;
-  }) => {
-    showError = handlers.error;
-    showSuccess = handlers.success;
-    showWarning = handlers.warning;
-    showInfo = handlers.info;
+  // Mark app as ready to show notifications
+  setAppReady: (ready: boolean) => {
+    isAppReady = ready
+    if (ready && notificationQueue.length > 0) {
+      // Show queued notifications
+      notificationQueue.forEach(({ type, content }) => {
+        if (message[type]) {
+          message[type](content)
+        }
+      })
+      notificationQueue = []
+    }
   },
-  
-  error: (message: string) => showError(message),
-  success: (message: string) => showSuccess(message),
-  warning: (message: string) => showWarning(message),
-  info: (message: string) => showInfo(message),
-};
+
+  // Show notification or queue it if app is not ready
+  show: (type: keyof typeof message, content: string) => {
+    if (isAppReady) {
+      if (message[type]) {
+        message[type](content)
+      }
+    } else {
+      // Queue notification for later
+      notificationQueue.push({ type, content })
+    }
+  },
+
+  error: (content: string) => notificationService.show('error', content),
+  success: (content: string) => notificationService.show('success', content),
+  warning: (content: string) => notificationService.show('warning', content),
+  info: (content: string) => notificationService.show('info', content),
+}

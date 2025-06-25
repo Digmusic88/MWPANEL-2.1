@@ -363,7 +363,7 @@ const NotificationCenter: React.FC = () => {
   return (
     <Dropdown
       menu={{ items: [] }}
-      dropdownRender={() => notificationList}
+      popupRender={() => notificationList}
       trigger={['click']}
       placement="bottomRight"
       open={dropdownVisible}

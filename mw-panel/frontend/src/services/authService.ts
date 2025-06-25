@@ -7,12 +7,17 @@ export const authService = {
     return response.data
   },
 
-  async logout(): Promise<void> {
+  async logout(refreshToken?: string): Promise<void> {
     try {
-      await apiClient.post('/auth/logout')
-    } catch (error) {
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refreshToken })
+      }
+    } catch (error: any) {
       // Continue with logout even if API call fails
-      console.warn('Logout API call failed:', error)
+      // Don't show error for 401 (token expired) during logout
+      if (error?.response?.status !== 401) {
+        console.warn('Logout API call failed:', error)
+      }
     }
   },
 

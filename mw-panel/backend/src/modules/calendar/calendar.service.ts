@@ -475,4 +475,36 @@ export class CalendarService {
 
     return this.findAll(query, userId);
   }
+
+  async getTeacherClassEvents(userId: string): Promise<CalendarEvent[]> {
+    // Find teacher by user ID
+    const teacher = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['subjectAssignments', 'subjectAssignments.classGroup'],
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Profesor no encontrado');
+    }
+
+    // Get class group IDs for this teacher
+    const classGroupIds = teacher.subjectAssignments?.map(sa => sa.classGroup.id) || [];
+
+    if (classGroupIds.length === 0) {
+      return [];
+    }
+
+    // Filter events for teacher's classes
+    const query: CalendarEventQueryDto = {
+      visibility: CalendarEventVisibility.CLASS_SPECIFIC,
+      onlyActive: true,
+    };
+
+    const allEvents = await this.findAll(query, userId);
+
+    // Filter events that belong to teacher's classes
+    return allEvents.filter(event => 
+      event.eventGroups?.some(eg => classGroupIds.includes(eg.classGroup.id))
+    );
+  }
 }
