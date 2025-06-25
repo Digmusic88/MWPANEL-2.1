@@ -1074,7 +1074,7 @@ const EnrollmentPage: React.FC = () => {
                 <Title level={4}>Resumen de Inscripción</Title>
                 
                 {/* Student Summary */}
-                <Card title="Datos del Estudiante" size="small" className="mb-4">
+                <Card title="Datos del Estudiante" className="mb-4">
                   <Row gutter={16}>
                     <Col span={12}>
                       <Text strong>Nombre Completo:</Text>

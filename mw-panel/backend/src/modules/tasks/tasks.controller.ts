@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  NotFoundException,
   Res,
   StreamableFile,
 } from '@nestjs/common';
@@ -275,8 +276,26 @@ export class TasksController {
     @Body() submitDto: SubmitTaskDto,
     @Request() req,
   ): Promise<TaskSubmission> {
-    return this.tasksService.submitTask(id, submitDto, req.user.sub);
+    console.log(`[DEBUG] Controller - Full req.user object:`, JSON.stringify(req.user, null, 2));
+    console.log(`[DEBUG] Controller - req.user.sub:`, req.user?.sub);
+    console.log(`[DEBUG] Controller - req.user.id:`, req.user?.id);
+    
+    // SECURITY FIX: Validate user object exists
+    if (!req.user) {
+      throw new BadRequestException('Usuario no autenticado correctamente');
+    }
+    
+    // Use user.id instead of user.sub if sub is undefined
+    const userId = req.user.sub || req.user.id;
+    
+    if (!userId) {
+      throw new BadRequestException('ID de usuario no disponible');
+    }
+    
+    console.log(`[DEBUG] Controller - Using userId:`, userId);
+    return this.tasksService.submitTask(id, submitDto, userId);
   }
+
 
   @Post('submissions/:submissionId/attachments')
   @Roles(UserRole.STUDENT)
@@ -363,7 +382,21 @@ export class TasksController {
   @ApiOperation({ summary: 'Obtener estadísticas avanzadas del profesor' })
   @ApiResponse({ status: 200, description: 'Estadísticas avanzadas con seguimiento detallado' })
   async getAdvancedTeacherStatistics(@Request() req) {
-    return this.tasksService.getAdvancedTeacherStatistics(req.user.sub);
+    console.log(`[DEBUG] Advanced stats - req.user:`, req.user ? `${req.user.id} (${req.user.email})` : 'null');
+    
+    // SECURITY FIX: Validate user object exists
+    if (!req.user) {
+      throw new BadRequestException('Usuario no autenticado correctamente');
+    }
+    
+    // Use user.id instead of user.sub if sub is undefined
+    const userId = req.user.sub || req.user.id;
+    
+    if (!userId) {
+      throw new BadRequestException('ID de usuario no disponible');
+    }
+    
+    return this.tasksService.getAdvancedTeacherStatistics(userId);
   }
 
   @Get('teacher/:id/submissions/analytics')

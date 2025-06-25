@@ -277,9 +277,55 @@ export class TasksService {
     await this.tasksRepository.update(id, { isActive: false });
   }
 
+  // ==================== HELPER METHODS ====================
+
+  async getStudentByUserId(userId: string): Promise<Student | null> {
+    console.log(`[DEBUG] getStudentByUserId called with userId: ${userId}`);
+    
+    // SECURITY FIX: Reject undefined/null userIds immediately
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.log(`[ERROR] Invalid userId provided: ${userId}`);
+      return null;
+    }
+    
+    const result = await this.studentsRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    console.log(`[DEBUG] getStudentByUserId result:`, result ? `found student ${result.id}` : 'no student found');
+    return result;
+  }
+
+  async getTeacherByUserId(userId: string): Promise<Teacher | null> {
+    console.log(`[DEBUG] getTeacherByUserId called with userId: ${userId}`);
+    
+    // SECURITY FIX: Reject undefined/null userIds immediately
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.log(`[ERROR] Invalid userId provided: ${userId}`);
+      return null;
+    }
+    
+    const result = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
+    });
+    console.log(`[DEBUG] getTeacherByUserId result:`, result ? `found teacher ${result.id}` : 'no teacher found');
+    return result;
+  }
+
   // ==================== ENTREGAS (ESTUDIANTES) ====================
 
-  async submitTask(taskId: string, submitDto: SubmitTaskDto, studentId: string): Promise<TaskSubmission> {
+  async submitTask(taskId: string, submitDto: SubmitTaskDto, userId: string): Promise<TaskSubmission> {
+    console.log(`[DEBUG] submitTask called - taskId: ${taskId}, userId: ${userId}`);
+    
+    // Obtener el studentId a partir del userId
+    const student = await this.getStudentByUserId(userId);
+    if (!student) {
+      throw new NotFoundException('Estudiante no encontrado para este usuario');
+    }
+    
+    const studentId = student.id;
+    console.log(`[DEBUG] Student found - studentId: ${studentId}, enrollmentNumber: ${student.enrollmentNumber}`);
+    
     const task = await this.findOne(taskId);
     
     // Verificar que la tarea está publicada
@@ -293,10 +339,16 @@ export class TasksService {
     }
 
     // Verificar que el estudiante está asignado a esta tarea
+    console.log(`[DEBUG] Looking for submission with taskId: ${taskId}, studentId: ${studentId}`);
     const submission = await this.submissionsRepository.findOne({
       where: { taskId, studentId },
       relations: ['attachments'],
     });
+
+    console.log(`[DEBUG] Submission found: ${submission ? 'YES' : 'NO'}, status: ${submission?.status}, needsRevision: ${submission?.needsRevision}`);
+    if (submission) {
+      console.log(`[DEBUG] Submission details - id: ${submission.id}, submittedAt: ${submission.submittedAt}`);
+    }
 
     if (!submission) {
       throw new NotFoundException('No tienes esta tarea asignada');
@@ -304,6 +356,7 @@ export class TasksService {
 
     // Verificar si ya fue entregada y no permite reenvíos
     if (submission.status === SubmissionStatus.SUBMITTED && !submission.needsRevision) {
+      console.log(`[DEBUG] Task already submitted by student ${studentId} - blocking resubmission`);
       throw new BadRequestException('Esta tarea ya fue entregada');
     }
 
@@ -995,15 +1048,14 @@ export class TasksService {
     };
   }
 
-  async getAdvancedTeacherStatistics(teacherId: string) {
-    const teacher = await this.teachersRepository.findOne({
-      where: { id: teacherId },
-      relations: ['user'],
-    });
-
+  async getAdvancedTeacherStatistics(userId: string) {
+    // Obtener el teacher a partir del userId
+    const teacher = await this.getTeacherByUserId(userId);
     if (!teacher) {
-      throw new NotFoundException('Profesor no encontrado');
+      throw new NotFoundException('Profesor no encontrado para este usuario');
     }
+    
+    const teacherId = teacher.id;
 
     const [tasks, submissions, pendingGrading] = await Promise.all([
       this.tasksRepository.find({

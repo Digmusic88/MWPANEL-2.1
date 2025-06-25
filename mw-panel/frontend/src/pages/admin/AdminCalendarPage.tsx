@@ -160,7 +160,7 @@ const AdminCalendarPage: React.FC = () => {
         <Space>
           <Button size="small">Usar</Button>
           <Button size="small">Editar</Button>
-          <Button size="small" danger>Eliminar</Button>
+          <Button danger>Eliminar</Button>
         </Space>
       ),
     },

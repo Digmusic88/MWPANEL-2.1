@@ -403,7 +403,7 @@ const CalendarPage: React.FC = () => {
                     <List.Item.Meta
                       avatar={
                         <Avatar 
-                          size="small" 
+                          
                           style={{ backgroundColor: event.color }}
                           icon={<CalendarOutlined />}
                         />
@@ -415,7 +415,7 @@ const CalendarPage: React.FC = () => {
                       }
                       description={
                         <Space direction="vertical" size={0}>
-                          <Tag size="small" color={event.color}>
+                          <Tag color={event.color}>
                             {getEventTypeLabel(event.type)}
                           </Tag>
                           <Text type="secondary" style={{ fontSize: '12px' }}>
@@ -447,7 +447,7 @@ const CalendarPage: React.FC = () => {
                     <List.Item.Meta
                       avatar={
                         <Avatar 
-                          size="small" 
+                          
                           style={{ backgroundColor: event.color }}
                           icon={<CalendarOutlined />}
                         />
@@ -735,7 +735,7 @@ const CalendarPage: React.FC = () => {
         </Drawer>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .events {
           list-style: none;
           margin: 0;

@@ -329,7 +329,7 @@ const TeacherCalendarPage: React.FC = () => {
                           <Text type="secondary">
                             {event.subject} - {event.classGroup}
                           </Text>
-                          <Tag size="small">{event.type}</Tag>
+                          <Tag >{event.type}</Tag>
                         </Space>
                       }
                     />

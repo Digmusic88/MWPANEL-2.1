@@ -273,7 +273,7 @@ const FamiliesPage: React.FC = () => {
           </Space>
           {record.secondaryContact && (
             <Space className="ml-8">
-              <Avatar icon={<UserOutlined />} size="small" style={{ backgroundColor: '#52c41a' }} />
+              <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
               <div>
                 <Text className="text-sm">
                   {record.secondaryContact.profile.firstName} {record.secondaryContact.profile.lastName}
@@ -1165,7 +1165,7 @@ const FamiliesPage: React.FC = () => {
                   {(fields, { add, remove }) => (
                     <>
                       {fields.map(({ key, name, ...restField }) => (
-                        <Card key={key} size="small" className="mb-4">
+                        <Card key={key} className="mb-4">
                           <Row gutter={16} align="middle">
                             <Col span={10}>
                               <Form.Item

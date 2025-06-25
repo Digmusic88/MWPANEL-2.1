@@ -20,6 +20,7 @@ import ActivitiesPage from './ActivitiesPage'
 import TasksPage from './TasksPage'
 import TasksDashboard from './TasksDashboard'
 import TaskGradingPage from './TaskGradingPage'
+import RubricsPage from './RubricsPage'
 import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Title, Text } = Typography
@@ -211,7 +212,7 @@ const TeacherDashboardHome: React.FC = () => {
           type="error"
           showIcon
           action={
-            <Button size="small" danger onClick={fetchTeacherProfile}>
+            <Button danger onClick={fetchTeacherProfile}>
               Reintentar
             </Button>
           }
@@ -428,14 +429,14 @@ const TeacherDashboardHome: React.FC = () => {
                   <BellOutlined />
                   Solicitudes de Asistencia
                   {pendingRequests.length > 0 && (
-                    <Badge count={pendingRequests.length} size="small" />
+                    <Badge count={pendingRequests.length} />
                   )}
                 </Space>
               }
               extra={
                 <Button 
                   type="primary" 
-                  size="small" 
+                  
                   onClick={() => navigate('/teacher/attendance')}
                 >
                   Ver Todas
@@ -458,7 +459,7 @@ const TeacherDashboardHome: React.FC = () => {
                       actions={[
                         <Button 
                           type="text" 
-                          size="small" 
+                          
                           icon={<CheckCircleOutlined />}
                           onClick={() => handleQuickReviewRequest(request.id, 'approved')}
                           style={{ color: '#52c41a' }}
@@ -467,7 +468,7 @@ const TeacherDashboardHome: React.FC = () => {
                         </Button>,
                         <Button 
                           type="text" 
-                          size="small" 
+                          
                           icon={<CloseCircleOutlined />}
                           onClick={() => handleQuickReviewRequest(request.id, 'rejected')}
                           danger
@@ -629,6 +630,7 @@ const TeacherDashboard: React.FC = () => {
       <Route path="tasks" element={<TasksPage />} />
       <Route path="tasks-dashboard" element={<TasksDashboard />} />
       <Route path="tasks/:taskId/submissions/:submissionId/grade" element={<TaskGradingPage />} />
+      <Route path="rubrics" element={<RubricsPage />} />
       <Route path="messages" element={<MessagesPage />} />
       {/* Add more teacher routes here */}
     </Routes>

@@ -247,7 +247,7 @@ const TasksDashboard: React.FC = () => {
       key: 'actions',
       render: (record: PendingGradingItem) => (
         <Button 
-          size="small" 
+          
           type="primary"
           onClick={() => navigate(`/teacher/tasks/${record.taskId}/submissions/${record.id}/grade`)}
         >

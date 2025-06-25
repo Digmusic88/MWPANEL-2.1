@@ -14,6 +14,7 @@ import {
   MessageOutlined,
   CalendarOutlined,
   ProjectOutlined,
+  TableOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@store/authStore'
 import { UserRole } from '@/types/user'
@@ -310,6 +311,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <BarChartOutlined />,
             label: 'Dashboard Tareas',
             onClick: () => navigate('/teacher/tasks-dashboard'),
+          },
+          {
+            key: 'rubrics',
+            icon: <TableOutlined />,
+            label: 'Rúbricas',
+            onClick: () => navigate('/teacher/rubrics'),
           },
           {
             key: 'evaluations',

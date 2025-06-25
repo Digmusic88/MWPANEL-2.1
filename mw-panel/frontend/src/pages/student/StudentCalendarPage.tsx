@@ -236,7 +236,7 @@ const StudentCalendarPage: React.FC = () => {
             type={getPendingAssignments().length > 5 ? 'warning' : 'success'}
             showIcon
             action={
-              <Button size="small" onClick={() => message.info('Ve a la sección de tareas para más detalles')}>
+              <Button onClick={() => message.info('Ve a la sección de tareas para más detalles')}>
                 Ver Detalles
               </Button>
             }
@@ -323,14 +323,14 @@ const StudentCalendarPage: React.FC = () => {
                         title={assignment.title}
                         description={
                           <Space direction="vertical" size={0} style={{ width: '100%' }}>
-                            <Tag size="small" color="blue">{assignment.subject}</Tag>
+                            <Tag color="blue">{assignment.subject}</Tag>
                             <Text type="secondary">
                               Vence: {dayjs(assignment.dueDate).format('DD/MM/YYYY')}
                             </Text>
                             <Text type={daysUntilDue <= 1 ? 'danger' : 'secondary'}>
                               {daysUntilDue <= 0 ? 'Vencida' : `${daysUntilDue} días restantes`}
                             </Text>
-                            <Tag size="small">{getAssignmentTypeLabel(assignment.type)}</Tag>
+                            <Tag >{getAssignmentTypeLabel(assignment.type)}</Tag>
                           </Space>
                         }
                       />

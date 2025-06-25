@@ -315,14 +315,14 @@ const FamilyCalendarPage: React.FC = () => {
                     <List.Item
                       actions={[
                         <Button 
-                          size="small" 
+                          
                           type="primary" 
                           onClick={() => handleEventResponse(event.id, true)}
                         >
                           Asistir
                         </Button>,
                         <Button 
-                          size="small" 
+                          
                           onClick={() => handleEventResponse(event.id, false)}
                         >
                           No Asistir
@@ -334,7 +334,7 @@ const FamilyCalendarPage: React.FC = () => {
                         title={event.title}
                         description={
                           <Space direction="vertical" size={0}>
-                            {event.studentName && <Tag size="small">{event.studentName}</Tag>}
+                            {event.studentName && <Tag >{event.studentName}</Tag>}
                             <Text type="secondary">
                               {dayjs(event.date).format('DD/MM/YYYY HH:mm')}
                             </Text>
@@ -398,9 +398,9 @@ const FamilyCalendarPage: React.FC = () => {
                         description={
                           <Space direction="vertical" size={0}>
                             <Space>
-                              <Tag size="small" color="blue">{assignment.subject}</Tag>
+                              <Tag color="blue">{assignment.subject}</Tag>
                               {selectedStudent === 'all' && (
-                                <Tag size="small">{assignment.studentName}</Tag>
+                                <Tag >{assignment.studentName}</Tag>
                               )}
                             </Space>
                             <Text type="secondary">
@@ -455,7 +455,7 @@ const FamilyCalendarPage: React.FC = () => {
                       description={
                         <Space direction="vertical" size={0}>
                           {notification.studentName && (
-                            <Tag size="small">{notification.studentName}</Tag>
+                            <Tag >{notification.studentName}</Tag>
                           )}
                           <Text type="secondary" style={{ fontSize: '12px' }}>
                             {notification.message}
@@ -484,11 +484,11 @@ const FamilyCalendarPage: React.FC = () => {
                       title={event.title}
                       description={
                         <Space direction="vertical" size={0}>
-                          {event.studentName && <Tag size="small">{event.studentName}</Tag>}
+                          {event.studentName && <Tag >{event.studentName}</Tag>}
                           <Text type="secondary">
                             {dayjs(event.date).format('DD/MM/YYYY HH:mm')}
                           </Text>
-                          <Tag size="small" color="green">{event.type}</Tag>
+                          <Tag color="green">{event.type}</Tag>
                         </Space>
                       }
                     />
