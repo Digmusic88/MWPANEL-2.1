@@ -54,10 +54,11 @@ const RubricEditor: React.FC<RubricEditorProps> = ({
   const [levels, setLevels] = useState<Array<Omit<RubricLevel, 'id' | 'isActive'>>>([]);
   const [previewRubric, setPreviewRubric] = useState<Rubric | null>(null);
   const [activeTab, setActiveTab] = useState('config');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Inicializar formulario cuando se edita una rúbrica
   useEffect(() => {
-    if (editingRubric && visible) {
+    if (editingRubric && visible && !isInitialized) {
       form.setFieldsValue({
         name: editingRubric.name,
         description: editingRubric.description,
@@ -83,7 +84,9 @@ const RubricEditor: React.FC<RubricEditorProps> = ({
         scoreValue: l.scoreValue,
         color: l.color
       })));
-    } else if (visible) {
+      
+      setIsInitialized(true);
+    } else if (visible && !editingRubric && !isInitialized) {
       // Valores por defecto para nueva rúbrica
       form.setFieldsValue({
         isTemplate: false,
@@ -93,8 +96,14 @@ const RubricEditor: React.FC<RubricEditorProps> = ({
         levelsCount: 4
       });
       initializeDefaultStructure();
+      setIsInitialized(true);
+    } else if (!visible) {
+      // Reset del flag cuando se cierre el modal
+      setIsInitialized(false);
+      setPreviewRubric(null);
+      setActiveTab('config');
     }
-  }, [editingRubric, visible, form]);
+  }, [editingRubric, visible, isInitialized, form]);
 
   // Inicializar estructura por defecto
   const initializeDefaultStructure = () => {
@@ -188,31 +197,50 @@ const RubricEditor: React.FC<RubricEditorProps> = ({
   };
 
   // Generar vista previa
-  const generatePreview = () => {
-    const formValues = form.getFieldsValue();
-    
-    const mockRubric: Rubric = {
-      id: 'preview',
-      name: formValues.name || 'Vista Previa',
-      description: formValues.description || '',
-      status: 'draft',
-      isTemplate: formValues.isTemplate || false,
-      isActive: true,
-      isVisibleToFamilies: formValues.isVisibleToFamilies || false,
-      criteriaCount: criteria.length,
-      levelsCount: levels.length,
-      maxScore: formValues.maxScore || 100,
-      teacherId: 'current-teacher',
-      subjectAssignmentId: formValues.subjectAssignmentId,
-      criteria: criteria.map((c, i) => ({ ...c, id: `preview-c-${i}`, isActive: true })),
-      levels: levels.map((l, i) => ({ ...l, id: `preview-l-${i}`, isActive: true })),
-      cells: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+  const generatePreview = async () => {
+    try {
+      // Validar solo los campos necesarios para la vista previa
+      await form.validateFields(['name']);
+      
+      const formValues = form.getFieldsValue();
+      
+      // Validar que hay criterios y niveles
+      if (criteria.length === 0) {
+        message.error('Debe tener al menos un criterio para generar la vista previa');
+        return;
+      }
+      
+      if (levels.length === 0) {
+        message.error('Debe tener al menos un nivel para generar la vista previa');
+        return;
+      }
+      
+      const mockRubric: Rubric = {
+        id: 'preview',
+        name: formValues.name || 'Vista Previa',
+        description: formValues.description || '',
+        status: 'draft',
+        isTemplate: formValues.isTemplate || false,
+        isActive: true,
+        isVisibleToFamilies: formValues.isVisibleToFamilies || false,
+        criteriaCount: criteria.length,
+        levelsCount: levels.length,
+        maxScore: formValues.maxScore || 100,
+        teacherId: 'current-teacher',
+        subjectAssignmentId: formValues.subjectAssignmentId,
+        criteria: criteria.map((c, i) => ({ ...c, id: `preview-c-${i}`, isActive: true })),
+        levels: levels.map((l, i) => ({ ...l, id: `preview-l-${i}`, isActive: true })),
+        cells: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-    setPreviewRubric(mockRubric);
-    setActiveTab('preview');
+      setPreviewRubric(mockRubric);
+      setActiveTab('preview');
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      message.error('Complete el nombre de la rúbrica para generar vista previa');
+    }
   };
 
   // Guardar rúbrica

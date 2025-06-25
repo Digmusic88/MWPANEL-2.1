@@ -126,6 +126,17 @@ export class RubricsController {
 
   // ==================== IMPORTACIÓN DESDE CHATGPT ====================
 
+  @Post('preview-import')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Vista previa de rúbrica desde ChatGPT (Markdown o CSV)' })
+  @ApiResponse({ status: 200, description: 'Vista previa generada exitosamente' })
+  @ApiResponse({ status: 400, description: 'Error en el formato de importación' })
+  async previewImportFromChatGPT(
+    @Body() previewDto: { format: string; data: string },
+  ): Promise<any> {
+    return this.rubricsService.previewImportFromChatGPT(previewDto.format, previewDto.data);
+  }
+
   @Post('import')
   @Roles(UserRole.TEACHER)
   @ApiOperation({ summary: 'Importar rúbrica desde ChatGPT (Markdown o CSV)' })
