@@ -25,6 +25,7 @@ import { CreateRubricDto } from '../dto/create-rubric.dto';
 import { UpdateRubricDto } from '../dto/update-rubric.dto';
 import { ImportRubricDto } from '../dto/import-rubric.dto';
 import { CreateRubricAssessmentDto, UpdateRubricAssessmentDto, RubricAssessmentResponseDto } from '../dto/rubric-assessment.dto';
+import { ShareRubricDto, UnshareRubricDto } from '../dto/share-rubric.dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -195,5 +196,46 @@ export class RubricsController {
       message: 'Parser implementado en RubricUtilsService',
       input: body.data,
     };
+  }
+
+  // ==================== COMPARTIR RÚBRICAS ====================
+
+  @Post(':id/share')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Compartir rúbrica con otros profesores' })
+  @ApiResponse({ status: 200, description: 'Rúbrica compartida exitosamente', type: Rubric })
+  @ApiResponse({ status: 403, description: 'Sin permisos para compartir esta rúbrica' })
+  @ApiResponse({ status: 404, description: 'Rúbrica no encontrada' })
+  async shareRubric(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() shareDto: ShareRubricDto,
+    @Request() req: any,
+  ): Promise<Rubric> {
+    const userId = req.user.sub || req.user.id;
+    return this.rubricsService.shareRubric(id, shareDto.teacherIds, userId);
+  }
+
+  @Post(':id/unshare')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Retirar acceso de rúbrica compartida' })
+  @ApiResponse({ status: 200, description: 'Acceso retirado exitosamente', type: Rubric })
+  @ApiResponse({ status: 403, description: 'Sin permisos para modificar esta rúbrica' })
+  @ApiResponse({ status: 404, description: 'Rúbrica no encontrada' })
+  async unshareRubric(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() unshareDto: UnshareRubricDto,
+    @Request() req: any,
+  ): Promise<Rubric> {
+    const userId = req.user.sub || req.user.id;
+    return this.rubricsService.unshareRubric(id, unshareDto.teacherIds, userId);
+  }
+
+  @Get('colleagues')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Obtener lista de profesores colegas para compartir' })
+  @ApiResponse({ status: 200, description: 'Lista de profesores', type: Array })
+  async getColleagues(@Request() req: any) {
+    const userId = req.user.sub || req.user.id;
+    return this.rubricsService.getColleagues(userId);
   }
 }

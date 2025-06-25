@@ -50,7 +50,20 @@ export class RubricUtilsService {
     // Parsear encabezados (primera línea)
     const headerCells = this.parseTableRow(dataLines[0]);
     const criterionHeader = headerCells[0]; // Primera columna es para criterios
-    const levelNames = headerCells.slice(1); // Resto son niveles
+    
+    // Detectar si hay columna de peso
+    const hasWeightColumn = headerCells.length > 2 && 
+      (headerCells[1].toLowerCase().includes('peso') || headerCells[1].includes('%'));
+    
+    let levelNames: string[];
+    let weightColumnIndex = -1;
+    
+    if (hasWeightColumn) {
+      weightColumnIndex = 1;
+      levelNames = headerCells.slice(2); // Saltar "Criterio" y "Peso (%)"
+    } else {
+      levelNames = headerCells.slice(1); // Solo saltar "Criterio"
+    }
 
     if (levelNames.length === 0) {
       throw new Error('Se requiere al menos un nivel de desempeño.');
@@ -69,7 +82,7 @@ export class RubricUtilsService {
     // Parsear filas de datos
     const criteria: CreateRubricCriterionDto[] = [];
     const cells: CreateRubricCellDto[] = [];
-    const defaultWeight = 1 / (dataLines.length - 1); // Peso uniforme
+    const defaultWeight = 1 / (dataLines.length - 1); // Peso uniforme por defecto
 
     for (let i = 1; i < dataLines.length; i++) {
       const row = this.parseTableRow(dataLines[i]);
@@ -79,14 +92,27 @@ export class RubricUtilsService {
       }
 
       const criterionName = row[0].trim();
-      const cellContents = row.slice(1);
+      
+      // Extraer peso si existe columna de peso
+      let weight = defaultWeight;
+      if (hasWeightColumn && row.length > weightColumnIndex) {
+        const weightStr = row[weightColumnIndex].replace('%', '').trim();
+        const parsedWeight = parseFloat(weightStr);
+        if (!isNaN(parsedWeight)) {
+          weight = parsedWeight / 100; // Convertir porcentaje a decimal
+        }
+      }
+      
+      // Extraer contenido de celdas
+      const cellStartIndex = hasWeightColumn ? 2 : 1;
+      const cellContents = row.slice(cellStartIndex);
 
       // Crear criterio
       const criterion: CreateRubricCriterionDto = {
         name: criterionName,
         description: `Criterio: ${criterionName}`,
         order: i - 1,
-        weight: defaultWeight,
+        weight: weight,
       };
       criteria.push(criterion);
 
@@ -116,7 +142,20 @@ export class RubricUtilsService {
 
     // Parsear encabezados
     const headers = this.parseCSVRow(lines[0]);
-    const levelNames = headers.slice(1);
+    
+    // Detectar si hay columna de peso
+    const hasWeightColumn = headers.length > 2 && 
+      (headers[1].toLowerCase().includes('peso') || headers[1].includes('%'));
+    
+    let levelNames: string[];
+    let weightColumnIndex = -1;
+    
+    if (hasWeightColumn) {
+      weightColumnIndex = 1;
+      levelNames = headers.slice(2); // Saltar "Criterio" y "Peso (%)"
+    } else {
+      levelNames = headers.slice(1); // Solo saltar "Criterio"
+    }
 
     if (levelNames.length === 0) {
       throw new Error('Se requiere al menos un nivel de desempeño.');
@@ -145,13 +184,26 @@ export class RubricUtilsService {
       }
 
       const criterionName = row[0].trim();
-      const cellContents = row.slice(1);
+      
+      // Extraer peso si existe columna de peso
+      let weight = defaultWeight;
+      if (hasWeightColumn && row.length > weightColumnIndex) {
+        const weightStr = row[weightColumnIndex].replace('%', '').trim();
+        const parsedWeight = parseFloat(weightStr);
+        if (!isNaN(parsedWeight)) {
+          weight = parsedWeight / 100; // Convertir porcentaje a decimal
+        }
+      }
+      
+      // Extraer contenido de celdas
+      const cellStartIndex = hasWeightColumn ? 2 : 1;
+      const cellContents = row.slice(cellStartIndex);
 
       const criterion: CreateRubricCriterionDto = {
         name: criterionName,
         description: `Criterio: ${criterionName}`,
         order: i - 1,
-        weight: defaultWeight,
+        weight: weight,
       };
       criteria.push(criterion);
 

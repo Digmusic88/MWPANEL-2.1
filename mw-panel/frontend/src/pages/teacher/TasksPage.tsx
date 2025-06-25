@@ -153,6 +153,7 @@ const TasksPage: React.FC = () => {
       // Primero obtener información del profesor logueado usando el dashboard
       const dashboardResponse = await apiClient.get('/teachers/dashboard/my-dashboard');
       const teacherId = dashboardResponse.data.teacher.id;
+      setCurrentTeacherId(teacherId);
       
       // Luego obtener sus asignaciones
       const response = await apiClient.get(`/subjects/assignments/teacher/${teacherId}`);
@@ -634,7 +635,7 @@ const TasksPage: React.FC = () => {
         }}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={createForm}
@@ -715,19 +716,6 @@ const TasksPage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item
-                name="maxPoints"
-                label="Puntuación Máxima"
-              >
-                <InputNumber
-                  min={0}
-                  max={100}
-                  placeholder="10"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
           </Row>
 
           <Row gutter={16}>
@@ -736,6 +724,7 @@ const TasksPage: React.FC = () => {
                 name="valuationType"
                 label="Tipo de Evaluación"
                 initialValue="score"
+                rules={[{ required: true, message: 'Selecciona un tipo de evaluación' }]}
               >
                 <Select
                   placeholder="Seleccionar tipo de evaluación"
@@ -752,62 +741,124 @@ const TasksPage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prevValues, curValues) => prevValues.valuationType !== curValues.valuationType}
-              >
-                {({ getFieldValue }) => {
-                  const valuationType = getFieldValue('valuationType');
-                  return valuationType === 'rubric' ? (
-                    <Form.Item
-                      name="rubricId"
-                      label="Seleccionar Rúbrica"
-                      rules={[
-                        {
-                          required: true,
-                          message: 'Selecciona una rúbrica para este tipo de evaluación'
-                        }
-                      ]}
-                    >
-                      <Select
-                        placeholder="Seleccionar rúbrica"
-                        onChange={(rubricId) => {
-                          const rubric = rubrics.find(r => r.id === rubricId);
-                          setSelectedRubric(rubric || null);
-                        }}
-                        dropdownRender={menu => (
-                          <div>
-                            {menu}
-                            <Divider style={{ margin: '8px 0' }} />
-                            <div style={{ padding: '8px', textAlign: 'center' }}>
-                              <Button type="link" onClick={() => window.open('/teacher/rubrics', '_blank')}>
-                                + Crear nueva rúbrica
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+            
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.valuationType !== curr.valuationType}>
+              {({ getFieldValue }) => {
+                const valuationType = getFieldValue('valuationType')
+                
+                if (valuationType === 'score') {
+                  return (
+                    <Col span={12}>
+                      <Form.Item
+                        name="maxPoints"
+                        label="Puntuación Máxima"
+                        rules={[
+                          { required: true, message: 'La puntuación máxima es requerida' },
+                          { type: 'number', min: 1, max: 100, message: 'Entre 1 y 100' }
+                        ]}
                       >
-                        {rubrics
-                          .filter(r => r.status === 'active' && !r.isTemplate)
-                          .map(rubric => (
+                        <InputNumber 
+                          min={1} 
+                          max={100} 
+                          placeholder="10"
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  )
+                }
+                
+                if (valuationType === 'rubric') {
+                  // Filtrar rúbricas activas del usuario actual o compartidas con él
+                  const availableRubrics = rubrics.filter(r => 
+                    r.status === 'active' && 
+                    !r.isTemplate &&
+                    (r.teacherId === currentTeacherId || r.sharedWith?.includes(currentTeacherId))
+                  )
+                  
+                  return (
+                    <Col span={12}>
+                      <Form.Item
+                        name="rubricId"
+                        label="Seleccionar Rúbrica"
+                        rules={[{ required: true, message: 'Selecciona una rúbrica' }]}
+                      >
+                        <Select 
+                          placeholder="Seleccionar rúbrica para evaluación"
+                          showSearch
+                          optionFilterProp="children"
+                          onChange={(rubricId) => {
+                            const selectedRubric = availableRubrics.find(r => r.id === rubricId)
+                            if (selectedRubric) {
+                              createForm.setFieldsValue({ maxPoints: selectedRubric.maxScore })
+                              setSelectedRubric(selectedRubric)
+                            }
+                          }}
+                          dropdownRender={menu => (
+                            <div>
+                              {menu}
+                              <Divider style={{ margin: '8px 0' }} />
+                              <div style={{ padding: '8px', textAlign: 'center' }}>
+                                <Button type="link" onClick={() => window.open('/teacher/rubrics', '_blank')}>
+                                  + Crear nueva rúbrica
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        >
+                          {availableRubrics.map(rubric => (
                             <Option key={rubric.id} value={rubric.id}>
-                              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                              <div>
                                 <Text strong>{rubric.name}</Text>
-                                <Space>
-                                  <Tag color="blue">{rubric.criteriaCount}C</Tag>
-                                  <Tag color="purple">{rubric.levelsCount}N</Tag>
-                                  <Tag color="orange">{rubric.maxScore}pts</Tag>
-                                </Space>
-                              </Space>
+                                {rubric.teacherId !== currentTeacherId && (
+                                  <Tag color="cyan" style={{ marginLeft: 8 }}>
+                                    Compartida
+                                  </Tag>
+                                )}
+                                <br />
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  {rubric.criteriaCount} criterios × {rubric.levelsCount} niveles - Máx: {rubric.maxScore} pts
+                                </Text>
+                                {rubric.description && (
+                                  <>
+                                    <br />
+                                    <Text type="secondary" style={{ fontSize: '11px', fontStyle: 'italic' }}>
+                                      {rubric.description}
+                                    </Text>
+                                  </>
+                                )}
+                              </div>
                             </Option>
                           ))}
-                      </Select>
+                        </Select>
+                      </Form.Item>
+                      
+                      {availableRubrics.length === 0 && (
+                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                          No hay rúbricas disponibles. Puedes crear una desde la sección de Rúbricas.
+                        </Text>
+                      )}
+                    </Col>
+                  )
+                }
+                
+                return (
+                  <Col span={12}>
+                    <Form.Item
+                      name="maxPoints"
+                      label="Puntuación Máxima"
+                    >
+                      <InputNumber
+                        min={0}
+                        max={100}
+                        placeholder="10"
+                        style={{ width: '100%' }}
+                      />
                     </Form.Item>
-                  ) : null;
-                }}
-              </Form.Item>
-            </Col>
+                  </Col>
+                )
+              }}
+            </Form.Item>
           </Row>
 
           {/* Vista previa de rúbrica seleccionada */}
@@ -979,7 +1030,7 @@ const TasksPage: React.FC = () => {
         }}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={editForm}

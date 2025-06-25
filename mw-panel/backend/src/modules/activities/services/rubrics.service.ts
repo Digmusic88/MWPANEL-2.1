@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not, Brackets } from 'typeorm';
 import { Rubric, RubricStatus } from '../entities/rubric.entity';
 import { RubricCriterion } from '../entities/rubric-criterion.entity';
 import { RubricLevel } from '../entities/rubric-level.entity';
@@ -112,24 +112,45 @@ export class RubricsService {
   async findAll(userId: string, includeTemplates: boolean = false): Promise<Rubric[]> {
     const teacher = await this.getTeacherByUserId(userId);
 
-    const query = this.rubricsRepository.createQueryBuilder('rubric')
-      .leftJoinAndSelect('rubric.criteria', 'criteria')
-      .leftJoinAndSelect('rubric.levels', 'levels')
-      .leftJoinAndSelect('rubric.cells', 'cells')
-      .leftJoinAndSelect('rubric.subjectAssignment', 'subjectAssignment')
-      .leftJoinAndSelect('subjectAssignment.subject', 'subject')
-      .leftJoinAndSelect('subjectAssignment.classGroup', 'classGroup')
-      .where('rubric.teacherId = :teacherId', { teacherId: teacher.id })
-      .andWhere('rubric.isActive = :isActive', { isActive: true })
-      .orderBy('rubric.createdAt', 'DESC')
-      .addOrderBy('criteria.order', 'ASC')
-      .addOrderBy('levels.order', 'ASC');
+    try {
+      // Primero intentar con una consulta más simple sin el operador ANY
+      const queryBuilder = this.rubricsRepository
+        .createQueryBuilder('rubric')
+        .leftJoinAndSelect('rubric.criteria', 'criteria')
+        .leftJoinAndSelect('rubric.levels', 'levels')
+        .leftJoinAndSelect('rubric.subjectAssignment', 'subjectAssignment')
+        .leftJoinAndSelect('subjectAssignment.subject', 'subject')
+        .leftJoinAndSelect('subjectAssignment.classGroup', 'classGroup')
+        .where('rubric.isActive = :isActive', { isActive: true })
+        .orderBy('rubric.createdAt', 'DESC');
 
-    if (!includeTemplates) {
-      query.andWhere('rubric.isTemplate = :isTemplate', { isTemplate: false });
+      // Usar consulta separada para el filtro del profesor
+      queryBuilder.andWhere(
+        new Brackets(qb => {
+          qb.where('rubric.teacherId = :teacherId', { teacherId: teacher.id });
+          // Temporalmente omitir la condición de sharedWith hasta que se resuelva el problema
+          // TODO: Implementar compartir rúbricas con consulta alternativa
+        })
+      );
+
+      if (!includeTemplates) {
+        queryBuilder.andWhere('rubric.isTemplate = :isTemplate', { isTemplate: false });
+      }
+
+      return await queryBuilder.getMany();
+    } catch (error) {
+      console.error('Error fetching rubrics:', error);
+      // Si hay un error, devolver solo las rúbricas del profesor actual
+      return this.rubricsRepository.find({
+        where: {
+          teacherId: teacher.id,
+          isActive: true,
+          ...(includeTemplates ? {} : { isTemplate: false })
+        },
+        relations: ['criteria', 'levels', 'subjectAssignment', 'subjectAssignment.subject', 'subjectAssignment.classGroup'],
+        order: { createdAt: 'DESC' }
+      });
     }
-
-    return query.getMany();
   }
 
   async findOne(id: string): Promise<Rubric> {
@@ -335,6 +356,7 @@ export class RubricsService {
   private async getTeacherByUserId(userId: string): Promise<Teacher> {
     const teacher = await this.teachersRepository.findOne({
       where: { user: { id: userId } },
+      relations: ['user']
     });
 
     if (!teacher) {
@@ -352,5 +374,83 @@ export class RubricsService {
     if (!assignment) {
       throw new ForbiddenException('No tienes acceso a esta asignación de asignatura');
     }
+  }
+
+  // ==================== MÉTODOS PARA COMPARTIR RÚBRICAS ====================
+
+  async shareRubric(rubricId: string, teacherIds: string[], userId: string): Promise<Rubric> {
+    const teacher = await this.getTeacherByUserId(userId);
+    
+    // Verificar que la rúbrica existe y pertenece al profesor actual
+    const rubric = await this.rubricsRepository.findOne({
+      where: { id: rubricId, teacherId: teacher.id },
+      relations: ['teacher']
+    });
+
+    if (!rubric) {
+      throw new NotFoundException('Rúbrica no encontrada o no tienes permisos para compartirla');
+    }
+
+    // Verificar que los profesores existen
+    const targetTeachers = await this.teachersRepository.findBy({ 
+      id: In(teacherIds) 
+    });
+
+    if (targetTeachers.length !== teacherIds.length) {
+      throw new BadRequestException('Algunos profesores especificados no existen');
+    }
+
+    // Añadir profesores a la lista de compartidos (evitar duplicados)
+    const currentSharedWith = rubric.sharedWith || [];
+    const newSharedWith = [...new Set([...currentSharedWith, ...teacherIds])];
+
+    rubric.sharedWith = newSharedWith;
+    return await this.rubricsRepository.save(rubric);
+  }
+
+  async unshareRubric(rubricId: string, teacherIds: string[], userId: string): Promise<Rubric> {
+    const teacher = await this.getTeacherByUserId(userId);
+    
+    // Verificar que la rúbrica existe y pertenece al profesor actual
+    const rubric = await this.rubricsRepository.findOne({
+      where: { id: rubricId, teacherId: teacher.id },
+    });
+
+    if (!rubric) {
+      throw new NotFoundException('Rúbrica no encontrada o no tienes permisos para modificarla');
+    }
+
+    // Remover profesores de la lista de compartidos
+    const currentSharedWith = rubric.sharedWith || [];
+    rubric.sharedWith = currentSharedWith.filter(id => !teacherIds.includes(id));
+
+    return await this.rubricsRepository.save(rubric);
+  }
+
+  async getColleagues(userId: string): Promise<any[]> {
+    const teacher = await this.getTeacherByUserId(userId);
+    
+    // Obtener todos los profesores excepto el actual
+    const colleagues = await this.teachersRepository.find({
+      where: { id: Not(teacher.id) },
+      relations: ['user', 'user.profile'],
+      select: {
+        id: true,
+        user: {
+          id: true,
+          email: true,
+          profile: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    return colleagues.map(colleague => ({
+      id: colleague.id,
+      name: `${colleague.user.profile.firstName} ${colleague.user.profile.lastName}`,
+      email: colleague.user.email
+    }));
   }
 }

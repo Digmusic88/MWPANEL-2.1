@@ -27,13 +27,16 @@ import {
   ShareAltOutlined,
   MoreOutlined,
   SearchOutlined,
-  FilterOutlined
+  FilterOutlined,
+  PercentageOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { Rubric, useRubrics } from '../../hooks/useRubrics';
 import RubricEditor from '../../components/rubrics/RubricEditor';
 import RubricImporter from '../../components/rubrics/RubricImporter';
 import RubricGrid from '../../components/rubrics/RubricGrid';
+import RubricSharingModal from '../../components/rubrics/RubricSharingModal';
+import RubricWeightEditor from '../../components/rubrics/RubricWeightEditor';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -61,15 +64,36 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
   const [editorVisible, setEditorVisible] = useState(false);
   const [importerVisible, setImporterVisible] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
+  const [sharingVisible, setSharingVisible] = useState(false);
+  const [weightEditorVisible, setWeightEditorVisible] = useState(false);
   
   // Estados de edición
   const [editingRubric, setEditingRubric] = useState<Rubric | null>(null);
   const [viewingRubric, setViewingRubric] = useState<Rubric | null>(null);
+  const [sharingRubric, setSharingRubric] = useState<Rubric | null>(null);
+  const [weightEditingRubric, setWeightEditingRubric] = useState<Rubric | null>(null);
+  const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
 
   // Cargar rúbricas al montar el componente
   useEffect(() => {
     fetchRubrics(true); // Incluir templates
+    fetchCurrentTeacherId();
   }, []);
+
+  // Obtener ID del profesor actual
+  const fetchCurrentTeacherId = async () => {
+    try {
+      const response = await fetch('/api/teachers/dashboard/my-dashboard', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setCurrentTeacherId(data.teacher.id);
+    } catch (error) {
+      console.error('Error al obtener ID del profesor:', error);
+    }
+  };
 
   // Filtrar rúbricas
   useEffect(() => {
@@ -175,6 +199,32 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
     });
   };
 
+  // Abrir modal de compartir
+  const handleShareRubric = (rubric: Rubric) => {
+    setSharingRubric(rubric);
+    setSharingVisible(true);
+  };
+
+  // Cerrar modal de compartir
+  const handleCloseSharingModal = () => {
+    setSharingVisible(false);
+    setSharingRubric(null);
+    fetchRubrics(true); // Refrescar datos
+  };
+
+  // Abrir editor de pesos
+  const handleEditWeights = (rubric: Rubric) => {
+    setWeightEditingRubric(rubric);
+    setWeightEditorVisible(true);
+  };
+
+  // Cerrar editor de pesos
+  const handleCloseWeightEditor = () => {
+    setWeightEditorVisible(false);
+    setWeightEditingRubric(null);
+    fetchRubrics(true); // Refrescar datos
+  };
+
   // Éxito en operaciones
   const handleOperationSuccess = (rubric: Rubric) => {
     fetchRubrics(true);
@@ -198,6 +248,13 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
         onClick: () => handleEditRubric(rubric)
       },
       {
+        key: 'edit-weights',
+        label: 'Editar Pesos',
+        icon: <PercentageOutlined />,
+        onClick: () => handleEditWeights(rubric),
+        disabled: rubric.teacherId !== currentTeacherId
+      },
+      {
         key: 'duplicate',
         label: 'Duplicar',
         icon: <CopyOutlined />,
@@ -211,6 +268,12 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
         label: 'Publicar',
         icon: <ShareAltOutlined />,
         onClick: () => handlePublishRubric(rubric)
+      }] : []),
+      ...(rubric.status === 'active' && rubric.teacherId === currentTeacherId ? [{
+        key: 'share',
+        label: 'Compartir con Colegas',
+        icon: <ShareAltOutlined />,
+        onClick: () => handleShareRubric(rubric)
       }] : []),
       {
         key: 'toggle-family',
@@ -239,9 +302,19 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (name: string, rubric: Rubric) => (
         <Space direction="vertical" size="small">
-          <Text strong style={{ cursor: 'pointer' }} onClick={() => handleViewRubric(rubric)}>
-            {name}
-          </Text>
+          <Space>
+            <Text strong style={{ cursor: 'pointer' }} onClick={() => handleViewRubric(rubric)}>
+              {name}
+            </Text>
+            {rubric.teacherId !== currentTeacherId && (
+              <Tag color="cyan">Compartida</Tag>
+            )}
+            {rubric.teacherId === currentTeacherId && rubric.sharedWith && rubric.sharedWith.length > 0 && (
+              <Tag color="purple">
+                Compartido ({rubric.sharedWith.length})
+              </Tag>
+            )}
+          </Space>
           {rubric.description && (
             <Text type="secondary" style={{ fontSize: '12px' }}>
               {rubric.description}
@@ -514,6 +587,20 @@ const RubricsPage: React.FC<RubricsPageProps> = () => {
           />
         )}
       </Modal>
+
+      <RubricSharingModal
+        visible={sharingVisible}
+        onCancel={handleCloseSharingModal}
+        rubric={sharingRubric}
+        currentTeacherId={currentTeacherId || ''}
+      />
+
+      <RubricWeightEditor
+        visible={weightEditorVisible}
+        onCancel={handleCloseWeightEditor}
+        rubric={weightEditingRubric}
+        onSuccess={handleCloseWeightEditor}
+      />
     </div>
   );
 };
