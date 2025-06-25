@@ -73,7 +73,7 @@ services:
     container_name: mw-panel-frontend
     restart: unless-stopped
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: /api
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public

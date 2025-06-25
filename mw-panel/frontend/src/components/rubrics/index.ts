@@ -4,6 +4,8 @@ export { default as RubricEditor } from './RubricEditor';
 export { default as RubricImporter } from './RubricImporter';
 export { default as RubricAssessment } from './RubricAssessment';
 export { default as RubricFamilyView } from './RubricFamilyView';
+export { default as RubricSharingModal } from './RubricSharingModal';
+export { default as RubricWeightEditor } from './RubricWeightEditor';
 
 // Export types from useRubrics hook
 export type {

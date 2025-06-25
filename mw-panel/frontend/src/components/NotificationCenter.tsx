@@ -362,12 +362,12 @@ const NotificationCenter: React.FC = () => {
 
   return (
     <Dropdown
-      overlay={notificationList}
+      menu={{ items: [] }}
+      dropdownRender={() => notificationList}
       trigger={['click']}
       placement="bottomRight"
       open={dropdownVisible}
       onOpenChange={setDropdownVisible}
-      overlayStyle={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
     >
       <Badge count={unreadCount} size="small">
         <Button

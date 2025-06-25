@@ -46,6 +46,7 @@ export interface Rubric {
   originalImportData?: string;
   teacherId: string;
   subjectAssignmentId?: string;
+  sharedWith?: string[];
   criteria: RubricCriterion[];
   levels: RubricLevel[];
   cells: RubricCell[];
@@ -166,7 +167,20 @@ export const useRubrics = () => {
       message.success('Rúbrica importada exitosamente');
       return newRubric;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Error al importar rúbrica';
+      console.error('Import error details:', err);
+      let errorMessage = 'Error al importar rúbrica';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Mensajes específicos para errores comunes
+      if (errorMessage.includes('parsear')) {
+        errorMessage += '. Verifica que la tabla tenga el formato correcto con | separando las columnas.';
+      }
+      
       message.error(errorMessage);
       return null;
     } finally {
@@ -309,6 +323,54 @@ export const useRubrics = () => {
     };
   };
 
+  // Compartir rúbrica con otros profesores
+  const shareRubric = async (id: string, teacherIds: string[]): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post(`/rubrics/${id}/share`, { teacherIds });
+      const sharedRubric = response.data;
+      setRubrics(prev => prev.map(r => r.id === id ? sharedRubric : r));
+      message.success('Rúbrica compartida exitosamente');
+      return true;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Error al compartir rúbrica';
+      message.error(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Retirar acceso de rúbrica compartida
+  const unshareRubric = async (id: string, teacherIds: string[]): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post(`/rubrics/${id}/unshare`, { teacherIds });
+      const unsharedRubric = response.data;
+      setRubrics(prev => prev.map(r => r.id === id ? unsharedRubric : r));
+      message.success('Acceso retirado exitosamente');
+      return true;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Error al retirar acceso';
+      message.error(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Obtener lista de profesores colegas
+  const fetchColleagues = async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get('/rubrics/colleagues');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Error al obtener colegas';
+      message.error(errorMessage);
+      return [];
+    }
+  };
+
   return {
     rubrics,
     loading,
@@ -322,6 +384,9 @@ export const useRubrics = () => {
     publishRubric,
     createAssessment,
     fetchAssessment,
+    shareRubric,
+    unshareRubric,
+    fetchColleagues,
     generateColors,
     calculateScore,
   };
