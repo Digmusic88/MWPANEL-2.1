@@ -27,6 +27,7 @@ import {
   Spin,
   Popconfirm,
   Checkbox,
+  Alert,
 } from 'antd'
 import {
   PlusOutlined,
@@ -49,6 +50,8 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import apiClient from '@services/apiClient'
+import { Rubric, useRubrics } from '../../hooks/useRubrics'
+import RubricAssessment from '../../components/rubrics/RubricAssessment'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -60,7 +63,7 @@ interface Activity {
   description?: string
   assignedDate: string
   reviewDate?: string
-  valuationType: 'emoji' | 'score'
+  valuationType: 'emoji' | 'score' | 'rubric'
   maxScore?: number
   notifyFamilies: boolean
   isActive: boolean
@@ -70,6 +73,14 @@ interface Activity {
     name: string
   }
   assessments: ActivityAssessment[]
+  rubricId?: string
+  rubric?: {
+    id: string
+    name: string
+    maxScore: number
+    criteriaCount: number
+    levelsCount: number
+  }
 }
 
 interface ActivityAssessment {
@@ -150,6 +161,9 @@ interface TeacherSummary {
 }
 
 const ActivitiesPage: React.FC = () => {
+  // Hook de rúbricas
+  const { rubrics, fetchRubrics } = useRubrics()
+  
   // Estados principales
   const [activities, setActivities] = useState<Activity[]>([])
   const [classGroups, setClassGroups] = useState<ClassGroup[]>([])
@@ -178,6 +192,10 @@ const ActivitiesPage: React.FC = () => {
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [bulkValue, setBulkValue] = useState<string>('')
   const [bulkComment, setBulkComment] = useState<string>('')
+  
+  // Estados específicos para evaluación con rúbricas
+  const [rubricAssessmentModalVisible, setRubricAssessmentModalVisible] = useState(false)
+  const [assessingStudent, setAssessingStudent] = useState<any>(null)
 
   // Estados para vista por asignaturas
   const [viewMode, setViewMode] = useState<'list' | 'subjects'>('subjects')
@@ -192,13 +210,21 @@ const ActivitiesPage: React.FC = () => {
     }
     fetchSubjectAssignments()
     fetchTeacherSummary()
+    fetchRubrics(true) // Cargar rúbricas incluyendo templates
   }, [selectedClassGroup, dateRange, viewMode])
 
   useEffect(() => {
     if (viewMode === 'subjects') {
       fetchSubjectSummaries()
     }
-  }, [viewMode])
+  }, [viewMode, subjectAssignments]) // Agregamos subjectAssignments como dependencia
+
+  // Cargar subjectSummaries inicialmente cuando tenemos subjectAssignments
+  useEffect(() => {
+    if (subjectAssignments.length > 0 && viewMode === 'subjects') {
+      fetchSubjectSummaries()
+    }
+  }, [subjectAssignments])
 
   useEffect(() => {
     if (selectedSubjectId) {
@@ -432,6 +458,33 @@ const ActivitiesPage: React.FC = () => {
     }
   }
 
+  // Manejar evaluación con rúbrica
+  const handleRubricAssessment = (student: any) => {
+    if (!selectedActivity || selectedActivity.valuationType !== 'rubric') return
+    
+    setAssessingStudent(student)
+    setRubricAssessmentModalVisible(true)
+  }
+
+  // Completar evaluación con rúbrica
+  const handleRubricAssessmentComplete = async (assessment: any) => {
+    try {
+      message.success('Evaluación con rúbrica guardada exitosamente')
+      setRubricAssessmentModalVisible(false)
+      setAssessingStudent(null)
+      
+      // Actualizar la actividad seleccionada
+      const updatedActivity = await apiClient.get(`/activities/${selectedActivity!.id}`)
+      setSelectedActivity(updatedActivity.data)
+      
+      // Actualizar la lista de actividades
+      fetchActivities()
+      fetchTeacherSummary()
+    } catch (error: any) {
+      console.error('Error updating activity after rubric assessment:', error)
+    }
+  }
+
   const openEditModal = (activity: Activity) => {
     setSelectedActivity(activity)
     editForm.setFieldsValue({
@@ -440,6 +493,7 @@ const ActivitiesPage: React.FC = () => {
       classGroupId: activity.classGroup.id,
       valuationType: activity.valuationType,
       maxScore: activity.maxScore,
+      rubricId: activity.rubricId,
       assignedDate: dayjs(activity.assignedDate),
       reviewDate: activity.reviewDate ? dayjs(activity.reviewDate) : null,
       notifyFamilies: activity.notifyFamilies,
@@ -495,9 +549,16 @@ const ActivitiesPage: React.FC = () => {
           )}
           <Space>
             <Tag color="blue">{record.classGroup.name}</Tag>
-            <Tag color={record.valuationType === 'emoji' ? 'green' : 'orange'}>
-              {record.valuationType === 'emoji' ? 'Emojis' : `Puntuación (/${record.maxScore})`}
+            <Tag color={record.valuationType === 'emoji' ? 'green' : record.valuationType === 'score' ? 'orange' : 'purple'}>
+              {record.valuationType === 'emoji' ? 'Emojis' : 
+               record.valuationType === 'score' ? `Puntuación (/${record.maxScore})` :
+               `Rúbrica (${record.rubric?.name || 'N/A'})`}
             </Tag>
+            {record.rubric && (
+              <Tag color="purple" style={{ fontSize: '10px' }}>
+                {record.rubric.criteriaCount}C × {record.rubric.levelsCount}N
+              </Tag>
+            )}
           </Space>
         </Space>
       ),
@@ -521,7 +582,7 @@ const ActivitiesPage: React.FC = () => {
           <Space direction="vertical" size="small">
             <Progress 
               percent={percentage} 
-              size="small" 
+              
               strokeColor={getCompletionColor(percentage)}
               format={() => `${assessed}/${total}`}
             />
@@ -899,6 +960,11 @@ const ActivitiesPage: React.FC = () => {
               <Input />
             </Form.Item>
 
+            {/* Campo hidden para maxScore cuando se usa rúbrica */}
+            <Form.Item name="maxScore" hidden>
+              <InputNumber />
+            </Form.Item>
+
             <Col span={12}>
               <Form.Item
                 name="assignedDate"
@@ -930,6 +996,7 @@ const ActivitiesPage: React.FC = () => {
                 <Radio.Group>
                   <Radio value="emoji">Emojis</Radio>
                   <Radio value="score">Puntuación</Radio>
+                  <Radio value="rubric">Rúbrica</Radio>
                 </Radio.Group>
               </Form.Item>
             </Col>
@@ -959,13 +1026,13 @@ const ActivitiesPage: React.FC = () => {
                       </Checkbox.Group>
                       <div className="mt-2">
                         <Button 
-                          size="small" 
+                          
                           onClick={() => setTargetStudents(assignment.students.map(s => s.id))}
                         >
                           Seleccionar todos
                         </Button>
                         <Button 
-                          size="small" 
+                          
                           style={{ marginLeft: 8 }}
                           onClick={() => setTargetStudents([])}
                         >
@@ -979,27 +1046,88 @@ const ActivitiesPage: React.FC = () => {
             </Form.Item>
 
             <Form.Item noStyle shouldUpdate={(prev, curr) => prev.valuationType !== curr.valuationType}>
-              {({ getFieldValue }) => 
-                getFieldValue('valuationType') === 'score' && (
-                  <Col span={24}>
-                    <Form.Item
-                      name="maxScore"
-                      label="Puntuación Máxima"
-                      rules={[
-                        { required: true, message: 'La puntuación máxima es requerida' },
-                        { type: 'number', min: 1, max: 100, message: 'Entre 1 y 100' }
-                      ]}
-                    >
-                      <InputNumber 
-                        min={1} 
-                        max={100} 
-                        className="w-full"
-                        placeholder="Ej: 10"
-                      />
-                    </Form.Item>
-                  </Col>
-                )
-              }
+              {({ getFieldValue }) => {
+                const valuationType = getFieldValue('valuationType')
+                
+                if (valuationType === 'score') {
+                  return (
+                    <Col span={24}>
+                      <Form.Item
+                        name="maxScore"
+                        label="Puntuación Máxima"
+                        rules={[
+                          { required: true, message: 'La puntuación máxima es requerida' },
+                          { type: 'number', min: 1, max: 100, message: 'Entre 1 y 100' }
+                        ]}
+                      >
+                        <InputNumber 
+                          min={1} 
+                          max={100} 
+                          className="w-full"
+                          placeholder="Ej: 10"
+                        />
+                      </Form.Item>
+                    </Col>
+                  )
+                }
+                
+                if (valuationType === 'rubric') {
+                  // Filtrar rúbricas activas
+                  const activeRubrics = rubrics.filter(r => r.status === 'active')
+                  
+                  return (
+                    <Col span={24}>
+                      <Form.Item
+                        name="rubricId"
+                        label="Seleccionar Rúbrica"
+                        rules={[{ required: true, message: 'Selecciona una rúbrica' }]}
+                      >
+                        <Select 
+                          placeholder="Seleccionar rúbrica para evaluación"
+                          className="w-full"
+                          showSearch
+                          optionFilterProp="children"
+                          onChange={(rubricId) => {
+                            // Auto-completar maxScore basado en la rúbrica seleccionada
+                            const selectedRubric = activeRubrics.find(r => r.id === rubricId)
+                            if (selectedRubric) {
+                              createForm.setFieldsValue({ maxScore: selectedRubric.maxScore })
+                            }
+                          }}
+                        >
+                          {activeRubrics.map(rubric => (
+                            <Option key={rubric.id} value={rubric.id}>
+                              <div>
+                                <Text strong>{rubric.name}</Text>
+                                <br />
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  {rubric.criteriaCount} criterios × {rubric.levelsCount} niveles - Máx: {rubric.maxScore} pts
+                                </Text>
+                                {rubric.description && (
+                                  <>
+                                    <br />
+                                    <Text type="secondary" style={{ fontSize: '11px', fontStyle: 'italic' }}>
+                                      {rubric.description}
+                                    </Text>
+                                  </>
+                                )}
+                              </div>
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                      
+                      {activeRubrics.length === 0 && (
+                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                          No hay rúbricas activas disponibles. Puedes crear una desde la sección de Rúbricas.
+                        </Text>
+                      )}
+                    </Col>
+                  )
+                }
+                
+                return null
+              }}
             </Form.Item>
 
             <Col span={24}>
@@ -1014,7 +1142,7 @@ const ActivitiesPage: React.FC = () => {
               {({ getFieldValue }) => 
                 getFieldValue('notifyFamilies') && getFieldValue('valuationType') === 'emoji' && (
                   <Col span={24}>
-                    <Card size="small" title="Configuración de Notificaciones por Emoji" style={{ backgroundColor: '#f6ffed' }}>
+                    <Card title="Configuración de Notificaciones por Emoji" style={{ backgroundColor: '#f6ffed' }}>
                       <Space direction="vertical" className="w-full">
                         <Typography.Text type="secondary">
                           Selecciona en qué casos se notificará a las familias:
@@ -1123,20 +1251,43 @@ const ActivitiesPage: React.FC = () => {
                 <Radio.Group disabled>
                   <Radio value="emoji">Emojis</Radio>
                   <Radio value="score">Puntuación</Radio>
+                  <Radio value="rubric">Rúbrica</Radio>
                 </Radio.Group>
               </Form.Item>
             </Col>
 
             <Form.Item noStyle shouldUpdate={(prev, curr) => prev.valuationType !== curr.valuationType}>
-              {({ getFieldValue }) => 
-                getFieldValue('valuationType') === 'score' && (
-                  <Col span={12}>
-                    <Form.Item name="maxScore" label="Puntuación Máxima">
-                      <InputNumber min={1} max={100} className="w-full" disabled />
-                    </Form.Item>
-                  </Col>
-                )
-              }
+              {({ getFieldValue }) => {
+                const valuationType = getFieldValue('valuationType')
+                
+                if (valuationType === 'score') {
+                  return (
+                    <Col span={12}>
+                      <Form.Item name="maxScore" label="Puntuación Máxima">
+                        <InputNumber min={1} max={100} className="w-full" disabled />
+                      </Form.Item>
+                    </Col>
+                  )
+                }
+                
+                if (valuationType === 'rubric') {
+                  return (
+                    <Col span={12}>
+                      <Form.Item name="rubricId" label="Rúbrica Asignada">
+                        <Select disabled className="w-full">
+                          {rubrics.map(rubric => (
+                            <Option key={rubric.id} value={rubric.id}>
+                              {rubric.name}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  )
+                }
+                
+                return null
+              }}
             </Form.Item>
 
             <Col span={24}>
@@ -1178,23 +1329,32 @@ const ActivitiesPage: React.FC = () => {
           setSelectedStudents([])
           setBulkValue('')
           setBulkComment('')
+          setRubricAssessmentModalVisible(false)
+          setAssessingStudent(null)
         }}
         width={600}
         extra={
           <Space>
-            <Button
-              type={bulkAssessmentMode ? 'default' : 'primary'}
-              onClick={() => setBulkAssessmentMode(!bulkAssessmentMode)}
-            >
-              {bulkAssessmentMode ? 'Cancelar Masiva' : 'Valoración Masiva'}
-            </Button>
+            {selectedActivity?.valuationType !== 'rubric' && (
+              <Button
+                type={bulkAssessmentMode ? 'default' : 'primary'}
+                onClick={() => setBulkAssessmentMode(!bulkAssessmentMode)}
+              >
+                {bulkAssessmentMode ? 'Cancelar Masiva' : 'Valoración Masiva'}
+              </Button>
+            )}
+            {selectedActivity?.valuationType === 'rubric' && (
+              <Tag color="purple" style={{ padding: '4px 8px' }}>
+                Evaluación por Rúbrica: {selectedActivity.rubric?.name}
+              </Tag>
+            )}
           </Space>
         }
       >
         {selectedActivity && (
           <div>
-            {/* Modo valoración masiva */}
-            {bulkAssessmentMode && (
+            {/* Modo valoración masiva - Solo para emoji y score */}
+            {bulkAssessmentMode && selectedActivity.valuationType !== 'rubric' && (
               <Card className="mb-4" style={{ backgroundColor: '#f6ffed', border: '1px solid #b7eb8f' }}>
                 <Space direction="vertical" className="w-full">
                   <Text strong>Valoración Masiva</Text>
@@ -1214,7 +1374,7 @@ const ActivitiesPage: React.FC = () => {
                         </Radio.Button>
                       </Radio.Group>
                     </Space>
-                  ) : (
+                  ) : selectedActivity.valuationType === 'score' ? (
                     <Space>
                       <Text>Puntuación:</Text>
                       <InputNumber
@@ -1226,6 +1386,8 @@ const ActivitiesPage: React.FC = () => {
                       />
                       <Text type="secondary">/ {selectedActivity.maxScore}</Text>
                     </Space>
+                  ) : (
+                    <Text type="secondary">Las rúbricas no soportan valoración masiva</Text>
                   )}
 
                   <Input.TextArea
@@ -1255,6 +1417,33 @@ const ActivitiesPage: React.FC = () => {
                   </Button>
                 </Space>
               </Card>
+            )}
+
+            {/* Información especial para rúbricas */}
+            {selectedActivity.valuationType === 'rubric' && (
+              <Alert
+                message="Evaluación por Rúbrica"
+                description={
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Text>
+                      Esta actividad utiliza la rúbrica: <Text strong>{selectedActivity.rubric?.name}</Text>
+                    </Text>
+                    <Text type="secondary">
+                      Haz clic en "Evaluar con Rúbrica" para cada estudiante para realizar una evaluación detallada.
+                    </Text>
+                    {selectedActivity.rubric && (
+                      <Space>
+                        <Tag color="purple">{selectedActivity.rubric.criteriaCount} criterios</Tag>
+                        <Tag color="blue">{selectedActivity.rubric.levelsCount} niveles</Tag>
+                        <Tag color="orange">Máx: {selectedActivity.rubric.maxScore} pts</Tag>
+                      </Space>
+                    )}
+                  </Space>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px' }}
+              />
             )}
 
             {/* Lista de estudiantes */}
@@ -1302,7 +1491,7 @@ const ActivitiesPage: React.FC = () => {
                           style={{ color: assessment.value === 'sad' ? '#fff' : '#ff4d4f' }}
                         />
                       </Space>
-                    ) : (
+                    ) : selectedActivity.valuationType === 'score' ? (
                       <Space key="score-actions">
                         <InputNumber
                           min={0}
@@ -1318,7 +1507,18 @@ const ActivitiesPage: React.FC = () => {
                         />
                         <Text type="secondary">/ {selectedActivity.maxScore}</Text>
                       </Space>
-                    )
+                    ) : selectedActivity.valuationType === 'rubric' ? (
+                      <Space key="rubric-actions">
+                        <Button
+                          type="primary"
+                          icon={<EditOutlined />}
+                          onClick={() => handleRubricAssessment(assessment.student)}
+                          size="small"
+                        >
+                          {assessment.isAssessed ? 'Editar Rúbrica' : 'Evaluar con Rúbrica'}
+                        </Button>
+                      </Space>
+                    ) : null
                   ] : undefined}
                 >
                   <List.Item.Meta
@@ -1347,9 +1547,15 @@ const ActivitiesPage: React.FC = () => {
                             <Text strong>
                               {selectedActivity.valuationType === 'emoji' ? (
                                 getEmojiIcon(assessment.value!)
-                              ) : (
+                              ) : selectedActivity.valuationType === 'score' ? (
                                 `${assessment.value}/${selectedActivity.maxScore}`
-                              )}
+                              ) : selectedActivity.valuationType === 'rubric' ? (
+                                <Space>
+                                  <TrophyOutlined style={{ color: '#1890ff' }} />
+                                  <span>{assessment.value}/{selectedActivity.maxScore} pts</span>
+                                  <Tag color="purple">Rúbrica</Tag>
+                                </Space>
+                              ) : assessment.value}
                             </Text>
                             <Text type="secondary" className="text-xs">
                               {dayjs(assessment.assessedAt).format('DD/MM/YYYY HH:mm')}
@@ -1513,6 +1719,43 @@ const ActivitiesPage: React.FC = () => {
           <div className="text-center py-8">
             <Spin size="large" />
           </div>
+        )}
+      </Modal>
+
+      {/* Modal de evaluación con rúbrica */}
+      <Modal
+        title={
+          <Space>
+            <TrophyOutlined style={{ color: '#722ed1' }} />
+            Evaluación con Rúbrica
+            {assessingStudent && (
+              <Tag color="blue">
+                {assessingStudent.user.profile.firstName} {assessingStudent.user.profile.lastName}
+              </Tag>
+            )}
+          </Space>
+        }
+        open={rubricAssessmentModalVisible}
+        onCancel={() => {
+          setRubricAssessmentModalVisible(false)
+          setAssessingStudent(null)
+        }}
+        width={1200}
+        footer={null}
+        destroyOnClose
+      >
+        {selectedActivity && selectedActivity.rubric && assessingStudent && (
+          <RubricAssessment
+            rubric={selectedActivity.rubric as Rubric}
+            studentId={assessingStudent.id}
+            studentName={`${assessingStudent.user.profile.firstName} ${assessingStudent.user.profile.lastName}`}
+            activityAssessmentId={selectedActivity.assessments.find(a => a.student.id === assessingStudent.id)?.id || ''}
+            onAssessmentComplete={handleRubricAssessmentComplete}
+            onCancel={() => {
+              setRubricAssessmentModalVisible(false)
+              setAssessingStudent(null)
+            }}
+          />
         )}
       </Modal>
     </div>

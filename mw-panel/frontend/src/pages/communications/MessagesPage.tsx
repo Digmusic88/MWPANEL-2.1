@@ -434,7 +434,7 @@ const MessagesPage: React.FC = () => {
       key: 'sender',
       render: (sender: any) => (
         <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
+          <Avatar icon={<UserOutlined />} />
           <Text>{sender.profile.firstName} {sender.profile.lastName}</Text>
         </Space>
       ),
@@ -446,14 +446,14 @@ const MessagesPage: React.FC = () => {
         if (record.recipient) {
           return (
             <Space>
-              <Avatar size="small" icon={<UserOutlined />} />
+              <Avatar icon={<UserOutlined />} />
               <Text>{record.recipient.profile.firstName} {record.recipient.profile.lastName}</Text>
             </Space>
           );
         } else if (record.targetGroup) {
           return (
             <Space>
-              <Avatar size="small" icon={<TeamOutlined />} />
+              <Avatar icon={<TeamOutlined />} />
               <Text>{record.targetGroup.name}</Text>
             </Space>
           );
@@ -912,7 +912,7 @@ const MessagesPage: React.FC = () => {
                   <Col span={12}>
                     <Text strong>De:</Text>
                     <div>
-                      <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                      <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
                       {selectedMessage.sender.profile.firstName} {selectedMessage.sender.profile.lastName}
                     </div>
                   </Col>
@@ -921,12 +921,12 @@ const MessagesPage: React.FC = () => {
                     <div>
                       {selectedMessage.recipient ? (
                         <>
-                          <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                          <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
                           {selectedMessage.recipient.profile.firstName} {selectedMessage.recipient.profile.lastName}
                         </>
                       ) : selectedMessage.targetGroup ? (
                         <>
-                          <Avatar size="small" icon={<TeamOutlined />} style={{ marginRight: 8 }} />
+                          <Avatar icon={<TeamOutlined />} style={{ marginRight: 8 }} />
                           {selectedMessage.targetGroup.name}
                         </>
                       ) : '-'}
@@ -961,7 +961,7 @@ const MessagesPage: React.FC = () => {
                     <Divider />
                     <Text strong>Estudiante relacionado:</Text>
                     <div>
-                      <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                      <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
                       {selectedMessage.relatedStudent.user.profile.firstName} {selectedMessage.relatedStudent.user.profile.lastName}
                     </div>
                   </>
@@ -982,9 +982,9 @@ const MessagesPage: React.FC = () => {
 
               {/* Respuestas (si las hay) */}
               {selectedMessage.replies && selectedMessage.replies.length > 0 && (
-                <Card size="small" title={`Respuestas (${selectedMessage.replies.length})`}>
+                <Card title={`Respuestas (${selectedMessage.replies.length})`}>
                   {selectedMessage.replies.map((reply) => (
-                    <Card key={reply.id} size="small" style={{ marginBottom: 16 }}>
+                    <Card key={reply.id} style={{ marginBottom: 16 }}>
                       <div>
                         <Text strong>
                           {reply.sender.profile.firstName} {reply.sender.profile.lastName}
@@ -1036,10 +1036,10 @@ const MessagesPage: React.FC = () => {
         {replyMessage && (
           <div>
             {/* Mensaje original */}
-            <Card size="small" style={{ marginBottom: 16, backgroundColor: '#f9f9f9' }}>
+            <Card style={{ marginBottom: 16, backgroundColor: '#f9f9f9' }}>
               <Text type="secondary">Mensaje original de:</Text>
               <div style={{ marginTop: 4 }}>
-                <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+                <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
                 <Text strong>
                   {replyMessage.sender.profile.firstName} {replyMessage.sender.profile.lastName}
                 </Text>

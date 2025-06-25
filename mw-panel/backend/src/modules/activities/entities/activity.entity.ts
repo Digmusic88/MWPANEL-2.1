@@ -13,10 +13,12 @@ import { ClassGroup } from '../../students/entities/class-group.entity';
 import { Teacher } from '../../teachers/entities/teacher.entity';
 import { SubjectAssignment } from '../../students/entities/subject-assignment.entity';
 import { ActivityAssessment } from './activity-assessment.entity';
+import { Rubric } from './rubric.entity';
 
 export enum ActivityValuationType {
   EMOJI = 'emoji',
   SCORE = 'score',
+  RUBRIC = 'rubric',
 }
 
 @Entity('activities')
@@ -93,6 +95,10 @@ export class Activity {
   @Column({ name: 'subject_assignment_id' })
   subjectAssignmentId: string;
 
+  @ApiProperty({ description: 'ID de la rúbrica (solo para tipo rubric)', required: false })
+  @Column({ name: 'rubric_id', nullable: true })
+  rubricId?: string;
+
   // Relaciones
   @ManyToOne(() => ClassGroup, (classGroup) => classGroup.id)
   @JoinColumn({ name: 'class_group_id' })
@@ -108,6 +114,10 @@ export class Activity {
 
   @OneToMany(() => ActivityAssessment, (assessment) => assessment.activity)
   assessments: ActivityAssessment[];
+
+  @ManyToOne(() => Rubric, { nullable: true })
+  @JoinColumn({ name: 'rubric_id' })
+  rubric?: Rubric;
 
   @ApiProperty({ description: 'Fecha de creación' })
   @CreateDateColumn()

@@ -13,6 +13,7 @@ import { Teacher } from '../teachers/entities/teacher.entity';
 import { Student } from '../students/entities/student.entity';
 import { SubjectAssignment } from '../students/entities/subject-assignment.entity';
 import { Family, FamilyStudent } from '../users/entities/family.entity';
+import { User } from '../users/entities/user.entity';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
@@ -28,6 +29,7 @@ import { join } from 'path';
       SubjectAssignment,
       Family,
       FamilyStudent,
+      User,
     ]),
     MulterModule.registerAsync({
       useFactory: async () => {

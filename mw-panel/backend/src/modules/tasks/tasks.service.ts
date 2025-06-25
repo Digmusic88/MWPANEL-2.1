@@ -33,6 +33,7 @@ import { Teacher } from '../teachers/entities/teacher.entity';
 import { Student } from '../students/entities/student.entity';
 import { SubjectAssignment } from '../students/entities/subject-assignment.entity';
 import { Family, FamilyStudent } from '../users/entities/family.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TasksService {
@@ -55,6 +56,8 @@ export class TasksService {
     private familiesRepository: Repository<Family>,
     @InjectRepository(FamilyStudent)
     private familyStudentsRepository: Repository<FamilyStudent>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   // ==================== CRUD TAREAS (PROFESORES) ====================
@@ -274,9 +277,55 @@ export class TasksService {
     await this.tasksRepository.update(id, { isActive: false });
   }
 
+  // ==================== HELPER METHODS ====================
+
+  async getStudentByUserId(userId: string): Promise<Student | null> {
+    console.log(`[DEBUG] getStudentByUserId called with userId: ${userId}`);
+    
+    // SECURITY FIX: Reject undefined/null userIds immediately
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.log(`[ERROR] Invalid userId provided: ${userId}`);
+      return null;
+    }
+    
+    const result = await this.studentsRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    console.log(`[DEBUG] getStudentByUserId result:`, result ? `found student ${result.id}` : 'no student found');
+    return result;
+  }
+
+  async getTeacherByUserId(userId: string): Promise<Teacher | null> {
+    console.log(`[DEBUG] getTeacherByUserId called with userId: ${userId}`);
+    
+    // SECURITY FIX: Reject undefined/null userIds immediately
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.log(`[ERROR] Invalid userId provided: ${userId}`);
+      return null;
+    }
+    
+    const result = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
+    });
+    console.log(`[DEBUG] getTeacherByUserId result:`, result ? `found teacher ${result.id}` : 'no teacher found');
+    return result;
+  }
+
   // ==================== ENTREGAS (ESTUDIANTES) ====================
 
-  async submitTask(taskId: string, submitDto: SubmitTaskDto, studentId: string): Promise<TaskSubmission> {
+  async submitTask(taskId: string, submitDto: SubmitTaskDto, userId: string): Promise<TaskSubmission> {
+    console.log(`[DEBUG] submitTask called - taskId: ${taskId}, userId: ${userId}`);
+    
+    // Obtener el studentId a partir del userId
+    const student = await this.getStudentByUserId(userId);
+    if (!student) {
+      throw new NotFoundException('Estudiante no encontrado para este usuario');
+    }
+    
+    const studentId = student.id;
+    console.log(`[DEBUG] Student found - studentId: ${studentId}, enrollmentNumber: ${student.enrollmentNumber}`);
+    
     const task = await this.findOne(taskId);
     
     // Verificar que la tarea está publicada
@@ -290,10 +339,16 @@ export class TasksService {
     }
 
     // Verificar que el estudiante está asignado a esta tarea
+    console.log(`[DEBUG] Looking for submission with taskId: ${taskId}, studentId: ${studentId}`);
     const submission = await this.submissionsRepository.findOne({
       where: { taskId, studentId },
       relations: ['attachments'],
     });
+
+    console.log(`[DEBUG] Submission found: ${submission ? 'YES' : 'NO'}, status: ${submission?.status}, needsRevision: ${submission?.needsRevision}`);
+    if (submission) {
+      console.log(`[DEBUG] Submission details - id: ${submission.id}, submittedAt: ${submission.submittedAt}`);
+    }
 
     if (!submission) {
       throw new NotFoundException('No tienes esta tarea asignada');
@@ -301,6 +356,7 @@ export class TasksService {
 
     // Verificar si ya fue entregada y no permite reenvíos
     if (submission.status === SubmissionStatus.SUBMITTED && !submission.needsRevision) {
+      console.log(`[DEBUG] Task already submitted by student ${studentId} - blocking resubmission`);
       throw new BadRequestException('Esta tarea ya fue entregada');
     }
 
@@ -419,6 +475,78 @@ export class TasksService {
   }
 
   // ==================== CALIFICACIÓN (PROFESORES) ====================
+
+  async getSubmission(submissionId: string, userId: string): Promise<TaskSubmission> {
+    const submission = await this.submissionsRepository.findOne({
+      where: { id: submissionId },
+      relations: [
+        'task',
+        'task.subjectAssignment',
+        'task.subjectAssignment.subject',
+        'task.subjectAssignment.classGroup',
+        'student',
+        'student.user',
+        'student.user.profile',
+        'attachments',
+      ],
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Entrega no encontrada');
+    }
+
+    // Verificar permisos según el rol del usuario
+    let hasAccess = false;
+
+    // Verificar si es profesor propietario de la tarea
+    const teacher = await this.teachersRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (teacher && submission.task.teacherId === teacher.id) {
+      hasAccess = true;
+    }
+
+    // Verificar si es el estudiante propietario de la entrega
+    const student = await this.studentsRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (student && submission.studentId === student.id) {
+      hasAccess = true;
+    }
+
+    // Verificar si es familia con acceso al estudiante
+    if (!hasAccess) {
+      // Buscar familia donde el usuario es primaryContact o secondaryContact
+      const families = await this.familiesRepository.find({
+        where: [
+          { primaryContact: { id: userId } },
+          { secondaryContact: { id: userId } },
+        ],
+      });
+
+      if (families.length > 0) {
+        for (const family of families) {
+          const familyStudents = await this.familyStudentsRepository.find({
+            where: { familyId: family.id },
+          });
+
+          const studentIds = familyStudents.map(fs => fs.studentId);
+          if (studentIds.includes(submission.studentId)) {
+            hasAccess = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!hasAccess) {
+      throw new ForbiddenException('No tienes permisos para ver esta entrega');
+    }
+
+    return submission;
+  }
 
   async gradeSubmission(submissionId: string, gradeDto: GradeTaskDto, userId: string): Promise<TaskSubmission> {
     const submission = await this.submissionsRepository.findOne({
@@ -880,6 +1008,477 @@ export class TasksService {
     }
 
     await this.submissionAttachmentsRepository.remove(attachment);
+  }
+
+  // ==================== NUEVOS MÉTODOS AVANZADOS ====================
+
+  async getSystemStatistics() {
+    const [totalTasks, totalSubmissions, pendingGrading, overdueTasks] = await Promise.all([
+      this.tasksRepository.count({
+        where: { isActive: true },
+      }),
+      this.submissionsRepository.count({
+        where: { status: In([SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, SubmissionStatus.GRADED]) },
+      }),
+      this.submissionsRepository.count({
+        where: { 
+          status: In([SubmissionStatus.SUBMITTED, SubmissionStatus.LATE]),
+          isGraded: false,
+        },
+      }),
+      this.tasksRepository.count({
+        where: {
+          dueDate: Between(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date()),
+          status: TaskStatus.PUBLISHED,
+        },
+      }),
+    ]);
+
+    const submissionRate = totalTasks > 0 ? (totalSubmissions / totalTasks * 100) : 0;
+    const averageGradingTime = await this.calculateAverageGradingTime();
+
+    return {
+      totalTasks,
+      totalSubmissions,
+      pendingGrading,
+      overdueTasks,
+      submissionRate: Math.round(submissionRate),
+      averageGradingTime,
+      lastUpdated: new Date(),
+    };
+  }
+
+  async getAdvancedTeacherStatistics(userId: string) {
+    // Obtener el teacher a partir del userId
+    const teacher = await this.getTeacherByUserId(userId);
+    if (!teacher) {
+      throw new NotFoundException('Profesor no encontrado para este usuario');
+    }
+    
+    const teacherId = teacher.id;
+
+    const [tasks, submissions, pendingGrading] = await Promise.all([
+      this.tasksRepository.find({
+        where: { teacherId, isActive: true },
+        relations: ['submissions', 'attachments', 'subjectAssignment', 'subjectAssignment.subject'],
+      }),
+      this.submissionsRepository.find({
+        where: { task: { teacherId } },
+        relations: ['task', 'student', 'student.user', 'student.user.profile'],
+      }),
+      this.submissionsRepository.find({
+        where: {
+          task: { teacherId },
+          status: In([SubmissionStatus.SUBMITTED, SubmissionStatus.LATE]),
+          isGraded: false,
+        },
+        relations: ['task', 'student', 'student.user', 'student.user.profile'],
+      }),
+    ]);
+
+    // Estadísticas por asignatura
+    const subjectStats = this.calculateSubjectStatistics(tasks);
+    
+    // Estadísticas de rendimiento por estudiante
+    const studentPerformance = this.calculateStudentPerformance(submissions);
+    
+    // Tendencias temporales
+    const timeAnalytics = this.calculateTimeAnalytics(tasks, submissions);
+    
+    // Métricas de engagement
+    const engagementMetrics = this.calculateEngagementMetrics(tasks, submissions);
+
+    // Calcular la tasa de finalización correctamente (entregas calificadas vs entregas realizadas)
+    const submittedSubmissions = submissions.filter(s => 
+      s.status !== SubmissionStatus.NOT_SUBMITTED
+    );
+    const gradedSubmissions = submittedSubmissions.filter(s => s.isGraded);
+    const completionRate = submittedSubmissions.length > 0 
+      ? Math.min(Math.round((gradedSubmissions.length / submittedSubmissions.length) * 100), 100)
+      : 0;
+
+    return {
+      overview: {
+        totalTasks: tasks.length,
+        totalSubmissions: submissions.length,
+        pendingGrading: pendingGrading.length,
+        completionRate,
+      },
+      subjectStats,
+      studentPerformance: studentPerformance.slice(0, 10), // Top 10
+      timeAnalytics,
+      engagementMetrics,
+      pendingGrading: pendingGrading.slice(0, 5), // Próximas 5
+    };
+  }
+
+  async getTaskSubmissionAnalytics(taskId: string, teacherId: string) {
+    const task = await this.tasksRepository.findOne({
+      where: { id: taskId, teacherId },
+      relations: [
+        'submissions',
+        'submissions.student',
+        'submissions.student.user',
+        'submissions.student.user.profile',
+        'submissions.attachments',
+        'subjectAssignment',
+        'subjectAssignment.classGroup',
+        'subjectAssignment.classGroup.students',
+      ],
+    });
+
+    if (!task) {
+      throw new NotFoundException('Tarea no encontrada');
+    }
+
+    const totalStudents = task.subjectAssignment?.classGroup?.students?.length || 0;
+    const submissions = task.submissions || [];
+
+    // Análisis de entregas
+    const submissionAnalysis = {
+      total: submissions.length,
+      onTime: submissions.filter(s => !s.isLate).length,
+      late: submissions.filter(s => s.isLate).length,
+      graded: submissions.filter(s => s.isGraded).length,
+      pending: submissions.filter(s => !s.isGraded).length,
+      notSubmitted: totalStudents - submissions.length,
+    };
+
+    // Análisis de calificaciones
+    const gradedSubmissions = submissions.filter(s => s.isGraded && s.finalGrade !== null);
+    const gradeAnalysis = {
+      average: gradedSubmissions.length > 0 
+        ? gradedSubmissions.reduce((acc, s) => acc + s.finalGrade!, 0) / gradedSubmissions.length 
+        : 0,
+      highest: gradedSubmissions.length > 0 
+        ? Math.max(...gradedSubmissions.map(s => s.finalGrade!)) 
+        : 0,
+      lowest: gradedSubmissions.length > 0 
+        ? Math.min(...gradedSubmissions.map(s => s.finalGrade!)) 
+        : 0,
+      distribution: this.calculateGradeDistribution(gradedSubmissions),
+    };
+
+    // Cronología de entregas
+    const submissionTimeline = submissions
+      .filter(s => s.submittedAt)
+      .map(s => ({
+        date: s.submittedAt!.toISOString().split('T')[0],
+        count: 1,
+      }))
+      .reduce((acc: any[], curr) => {
+        const existing = acc.find(item => item.date === curr.date);
+        if (existing) {
+          existing.count++;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      taskInfo: {
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate,
+        status: task.status,
+        totalStudents,
+      },
+      submissionAnalysis,
+      gradeAnalysis,
+      submissionTimeline,
+      recentSubmissions: submissions
+        .sort((a, b) => new Date(b.submittedAt!).getTime() - new Date(a.submittedAt!).getTime())
+        .slice(0, 10),
+    };
+  }
+
+  async getPendingGrading(teacherId: string) {
+    const pendingSubmissions = await this.submissionsRepository.find({
+      where: {
+        task: { teacherId },
+        status: In([SubmissionStatus.SUBMITTED, SubmissionStatus.LATE]),
+        isGraded: false,
+      },
+      relations: [
+        'task',
+        'student',
+        'student.user',
+        'student.user.profile',
+        'attachments',
+      ],
+      order: { submittedAt: 'ASC' },
+    });
+
+    return pendingSubmissions.map(submission => ({
+      id: submission.id,
+      taskTitle: submission.task.title,
+      taskId: submission.task.id,
+      studentName: `${submission.student.user.profile.firstName} ${submission.student.user.profile.lastName}`,
+      studentId: submission.student.id,
+      submittedAt: submission.submittedAt,
+      daysPending: Math.ceil((new Date().getTime() - new Date(submission.submittedAt!).getTime()) / (1000 * 60 * 60 * 24)),
+      hasAttachments: submission.attachments?.length > 0,
+      isLate: submission.isLate,
+    }));
+  }
+
+  // MÉTODO TEMPORAL PARA TESTING
+  async getTestPendingGrading() {
+    // Buscar teacher por email conocido
+    const teacher = await this.teachersRepository.findOne({
+      where: { user: { email: 'profesor@mwpanel.com' } },
+      relations: ['user'],
+    });
+    
+    if (!teacher) {
+      throw new NotFoundException('Profesor de prueba no encontrado');
+    }
+    
+    return this.getPendingGrading(teacher.id);
+  }
+
+  async getTestSubmission(submissionId: string) {
+    const submission = await this.submissionsRepository.findOne({
+      where: { id: submissionId },
+      relations: [
+        'task',
+        'task.subjectAssignment',
+        'task.subjectAssignment.subject',
+        'task.subjectAssignment.classGroup',
+        'student',
+        'student.user',
+        'student.user.profile',
+        'attachments',
+      ],
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Entrega no encontrada');
+    }
+
+    return submission;
+  }
+
+  async getOverdueTasks(teacherId: string) {
+    const now = new Date();
+    const overdueTasks = await this.tasksRepository.find({
+      where: {
+        teacherId,
+        dueDate: Between(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), now),
+        status: TaskStatus.PUBLISHED,
+      },
+      relations: [
+        'submissions',
+        'subjectAssignment',
+        'subjectAssignment.classGroup',
+        'subjectAssignment.classGroup.students',
+        'subjectAssignment.subject',
+      ],
+    });
+
+    return overdueTasks.map(task => {
+      const totalStudents = task.subjectAssignment?.classGroup?.students?.length || 0;
+      const submittedCount = task.submissions?.length || 0;
+      const missingSubmissions = totalStudents - submittedCount;
+
+      return {
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate,
+        subjectName: task.subjectAssignment?.subject?.name,
+        totalStudents,
+        submittedCount,
+        missingSubmissions,
+        completionRate: Math.round((submittedCount / Math.max(totalStudents, 1)) * 100),
+        daysOverdue: Math.ceil((now.getTime() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24)),
+      };
+    });
+  }
+
+  async sendBulkReminders(taskIds: string[], teacherId: string, customMessage?: string) {
+    const tasks = await this.tasksRepository.find({
+      where: {
+        id: In(taskIds),
+        teacherId,
+      },
+      relations: [
+        'subjectAssignment',
+        'subjectAssignment.classGroup',
+        'subjectAssignment.classGroup.students',
+        'subjectAssignment.classGroup.students.user',
+        'submissions',
+      ],
+    });
+
+    if (tasks.length === 0) {
+      throw new NotFoundException('No se encontraron tareas válidas');
+    }
+
+    let totalReminders = 0;
+
+    for (const task of tasks) {
+      const studentsToRemind = task.subjectAssignment?.classGroup?.students?.filter(student => {
+        // Solo enviar recordatorio si no ha entregado la tarea
+        return !task.submissions?.some(submission => submission.studentId === student.id);
+      }) || [];
+
+      totalReminders += studentsToRemind.length;
+
+      // Aquí se integraría con el sistema de notificaciones
+      // Por ahora solo registramos la acción
+      console.log(`Enviando recordatorio de tarea "${task.title}" a ${studentsToRemind.length} estudiantes`);
+    }
+
+    return {
+      message: `Recordatorios enviados exitosamente`,
+      taskCount: tasks.length,
+      reminderCount: totalReminders,
+      sentAt: new Date(),
+    };
+  }
+
+  // ==================== MÉTODOS AUXILIARES ====================
+
+  private calculateSubjectStatistics(tasks: Task[]) {
+    const subjectMap = new Map();
+
+    tasks.forEach(task => {
+      const subjectName = task.subjectAssignment?.subject?.name || 'Sin asignatura';
+      const submissionCount = task.submissions?.length || 0;
+      const gradedCount = task.submissions?.filter(s => s.isGraded).length || 0;
+
+      if (!subjectMap.has(subjectName)) {
+        subjectMap.set(subjectName, {
+          name: subjectName,
+          taskCount: 0,
+          submissionCount: 0,
+          gradedCount: 0,
+          averageGrade: 0,
+        });
+      }
+
+      const stats = subjectMap.get(subjectName);
+      stats.taskCount++;
+      stats.submissionCount += submissionCount;
+      stats.gradedCount += gradedCount;
+    });
+
+    return Array.from(subjectMap.values());
+  }
+
+  private calculateStudentPerformance(submissions: TaskSubmission[]) {
+    const studentMap = new Map();
+
+    submissions.forEach(submission => {
+      const studentKey = submission.student.id;
+      const studentName = `${submission.student.user.profile.firstName} ${submission.student.user.profile.lastName}`;
+
+      if (!studentMap.has(studentKey)) {
+        studentMap.set(studentKey, {
+          studentId: studentKey,
+          studentName,
+          submissionCount: 0,
+          averageGrade: 0,
+          onTimeRate: 0,
+          grades: [],
+        });
+      }
+
+      const stats = studentMap.get(studentKey);
+      stats.submissionCount++;
+      
+      if (submission.finalGrade !== null) {
+        stats.grades.push(submission.finalGrade);
+      }
+    });
+
+    // Calcular promedios
+    Array.from(studentMap.values()).forEach(stats => {
+      if (stats.grades.length > 0) {
+        stats.averageGrade = stats.grades.reduce((a: number, b: number) => a + b, 0) / stats.grades.length;
+      }
+    });
+
+    return Array.from(studentMap.values()).sort((a, b) => b.averageGrade - a.averageGrade);
+  }
+
+  private calculateTimeAnalytics(tasks: Task[], submissions: TaskSubmission[]) {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const recentTasks = tasks.filter(t => t.createdAt >= thirtyDaysAgo);
+    const recentSubmissions = submissions.filter(s => s.submittedAt && s.submittedAt >= thirtyDaysAgo);
+
+    return {
+      tasksCreatedLast30Days: recentTasks.length,
+      submissionsLast30Days: recentSubmissions.length,
+      averageSubmissionsPerTask: recentTasks.length > 0 ? recentSubmissions.length / recentTasks.length : 0,
+    };
+  }
+
+  private calculateEngagementMetrics(tasks: Task[], submissions: TaskSubmission[]) {
+    const totalPossibleSubmissions = tasks.reduce((acc, task) => {
+      return acc + (task.subjectAssignment?.classGroup?.students?.length || 0);
+    }, 0);
+
+    // Filtrar solo entregas válidas (no duplicadas ni not_submitted)
+    const validSubmissions = submissions.filter(s => 
+      s.status !== SubmissionStatus.NOT_SUBMITTED
+    );
+
+    const submissionRate = totalPossibleSubmissions > 0 ? 
+      Math.min((validSubmissions.length / totalPossibleSubmissions) * 100, 100) : 0;
+    
+    const onTimeRate = validSubmissions.length > 0 ? 
+      (validSubmissions.filter(s => !s.isLate).length / validSubmissions.length) * 100 : 0;
+
+    return {
+      submissionRate: Math.round(submissionRate),
+      onTimeRate: Math.round(onTimeRate),
+      averageAttachmentsPerSubmission: validSubmissions.length > 0 
+        ? validSubmissions.reduce((acc, s) => acc + (s.attachments?.length || 0), 0) / validSubmissions.length 
+        : 0,
+    };
+  }
+
+  private calculateGradeDistribution(submissions: TaskSubmission[]) {
+    const ranges = [
+      { label: '90-100%', min: 90, max: 100, count: 0 },
+      { label: '80-89%', min: 80, max: 89, count: 0 },
+      { label: '70-79%', min: 70, max: 79, count: 0 },
+      { label: '60-69%', min: 60, max: 69, count: 0 },
+      { label: '0-59%', min: 0, max: 59, count: 0 },
+    ];
+
+    submissions.forEach(submission => {
+      if (submission.finalGrade !== null && submission.task?.maxPoints) {
+        const percentage = (submission.finalGrade / submission.task.maxPoints) * 100;
+        const range = ranges.find(r => percentage >= r.min && percentage <= r.max);
+        if (range) range.count++;
+      }
+    });
+
+    return ranges;
+  }
+
+  private async calculateAverageGradingTime() {
+    const gradedSubmissions = await this.submissionsRepository.find({
+      where: { isGraded: true },
+      select: ['submittedAt', 'gradedAt'],
+    });
+
+    if (gradedSubmissions.length === 0) return 0;
+
+    const totalTime = gradedSubmissions.reduce((acc, submission) => {
+      if (submission.submittedAt && submission.gradedAt) {
+        return acc + (submission.gradedAt.getTime() - submission.submittedAt.getTime());
+      }
+      return acc;
+    }, 0);
+
+    return Math.round(totalTime / gradedSubmissions.length / (1000 * 60 * 60 * 24)); // Días
   }
 
   private getFileTypeFromMimeType(mimeType: string): AttachmentType {

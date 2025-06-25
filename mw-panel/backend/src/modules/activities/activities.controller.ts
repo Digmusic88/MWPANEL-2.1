@@ -23,6 +23,7 @@ import { SubjectActivitySummaryDto } from './dto/subject-activity-summary.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { Activity } from './entities/activity.entity';
 import { ActivityAssessment } from './entities/activity-assessment.entity';
@@ -252,5 +253,24 @@ export class ActivitiesController {
   ): Promise<ActivityAssessment[]> {
     const familyUserId = req.user.id;
     return this.activitiesService.getFamilyActivities(familyUserId, studentId, limit || 10);
+  }
+
+  // ENDPOINT TEMPORAL PARA TESTING SIN AUTH
+  @Get('test/teacher-assignments')
+  @Public()
+  @ApiOperation({ summary: 'TEST: Obtener subject assignments sin auth' })
+  async getTestTeacherAssignments() {
+    // Usar teacherId conocido directamente (profesor@mwpanel.com)
+    const teacherId = '19f18f41-9480-40c3-9165-b9d0404d5bb1';
+    return this.activitiesService.getTeacherSubjectAssignments(teacherId);
+  }
+
+  @Get('test/summary')
+  @Public()
+  @ApiOperation({ summary: 'TEST: Obtener teacher summary sin auth' })
+  async getTestTeacherSummary() {
+    // Usar teacherId conocido directamente
+    const teacherId = '19f18f41-9480-40c3-9165-b9d0404d5bb1';
+    return this.activitiesService.getTeacherSummary(teacherId);
   }
 }

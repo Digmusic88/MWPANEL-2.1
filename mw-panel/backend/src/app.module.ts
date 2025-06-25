@@ -20,6 +20,9 @@ import { CommunicationsModule } from './modules/communications/communications.mo
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { AcademicRecordsModule } from './modules/academic-records/academic-records.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import databaseConfig from './config/database.config';
@@ -70,6 +73,9 @@ import appConfig from './config/app.config';
     AttendanceModule,
     ActivitiesModule,
     TasksModule,
+    SettingsModule,
+    AcademicRecordsModule,
+    CalendarModule,
   ],
   controllers: [],
   providers: [

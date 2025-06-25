@@ -268,7 +268,7 @@ const FamilyTasksPage: React.FC = () => {
             return (
               <div key={submission.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <div className="flex items-center gap-2">
-                  <Avatar size="small" icon={<UserOutlined />} />
+                  <Avatar icon={<UserOutlined />} />
                   <span className="text-sm">
                     {student?.user.profile.firstName} {student?.user.profile.lastName}
                   </span>
@@ -643,7 +643,7 @@ const FamilyTasksPage: React.FC = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
-                              <Avatar size="small" icon={<UserOutlined />} />
+                              <Avatar icon={<UserOutlined />} />
                               <span className="font-medium">
                                 {student?.user.profile.firstName} {student?.user.profile.lastName}
                               </span>

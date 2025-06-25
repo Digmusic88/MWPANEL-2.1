@@ -22,15 +22,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<User> {
+    console.log(`[DEBUG] JWT Strategy - payload:`, JSON.stringify(payload, null, 2));
+    
     const user = await this.usersRepository.findOne({
       where: { id: payload.sub },
       relations: ['profile'],
     });
 
+    console.log(`[DEBUG] JWT Strategy - found user:`, user ? `${user.id} (${user.email})` : 'null');
+
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Usuario no autorizado');
     }
 
+    // Ensure user has sub property for consistency
+    (user as any).sub = user.id;
+    
     return user;
   }
 }

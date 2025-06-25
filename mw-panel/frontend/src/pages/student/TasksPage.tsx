@@ -375,7 +375,7 @@ const StudentTasksPage: React.FC = () => {
             </div>
             <Progress 
               percent={progress} 
-              size="small" 
+              
               strokeColor={
                 progress === 100 ? '#52c41a' : 
                 progress >= 75 ? '#1890ff' : 
@@ -454,7 +454,7 @@ const StudentTasksPage: React.FC = () => {
               showIcon
               action={
                 <Button 
-                  size="small" 
+                  
                   type="primary" 
                   onClick={() => openSubmitModal(task)}
                 >

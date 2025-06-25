@@ -271,7 +271,7 @@ const SchedulesPage: React.FC = () => {
       order: record.order,
       isBreak: record.isBreak,
       isActive: record.isActive,
-      educationalLevelId: record.educationalLevel.id,
+      educationalLevelId: record.educationalLevel?.id || null,
     });
     setTimeSlotModalVisible(true);
   };
@@ -321,11 +321,11 @@ const SchedulesPage: React.FC = () => {
     setEditingSession(record);
     
     const formValues = {
-      subjectAssignmentId: record.subjectAssignment.id,
-      classroomId: record.classroom.id,
-      timeSlotId: record.timeSlot.id,
+      subjectAssignmentId: record.subjectAssignment?.id || null,
+      classroomId: record.classroom?.id || null,
+      timeSlotId: record.timeSlot?.id || null,
       dayOfWeek: record.dayOfWeek,
-      academicYearId: record.academicYear.id,
+      academicYearId: record.academicYear?.id || null,
       dateRange: [dayjs(record.startDate), dayjs(record.endDate)],
       isActive: record.isActive,
       notes: record.notes,
@@ -402,7 +402,7 @@ const SchedulesPage: React.FC = () => {
           <Tag color="blue">{record.code}</Tag>
         </div>
       ),
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
     },
     {
       title: 'Tipo',
@@ -458,7 +458,7 @@ const SchedulesPage: React.FC = () => {
           />
           <Popconfirm
             title="¿Está seguro de eliminar esta aula?"
-            onConfirm={() => handleDeleteClassroom(record.id)}
+            onConfirm={() => record.id && handleDeleteClassroom(record.id)}
             okText="Sí"
             cancelText="No"
           >
@@ -490,7 +490,7 @@ const SchedulesPage: React.FC = () => {
       title: 'Nivel Educativo',
       key: 'educationalLevel',
       render: (_, record) => (
-        <Tag color="blue">{record.educationalLevel.name}</Tag>
+        <Tag color="blue">{record.educationalLevel?.name || 'No asignado'}</Tag>
       ),
     },
     {
@@ -540,7 +540,7 @@ const SchedulesPage: React.FC = () => {
           />
           <Popconfirm
             title="¿Está seguro de eliminar esta franja horaria?"
-            onConfirm={() => handleDeleteTimeSlot(record.id)}
+            onConfirm={() => record.id && handleDeleteTimeSlot(record.id)}
             okText="Sí"
             cancelText="No"
           >
@@ -562,8 +562,8 @@ const SchedulesPage: React.FC = () => {
       key: 'subject',
       render: (_, record) => (
         <div>
-          <div className="font-medium">{record.subjectAssignment.subject.name}</div>
-          <Text type="secondary">{record.subjectAssignment.classGroup.name}</Text>
+          <div className="font-medium">{record.subjectAssignment?.subject?.name || 'No asignado'}</div>
+          <Text type="secondary">{record.subjectAssignment?.classGroup?.name || 'Sin grupo'}</Text>
         </div>
       ),
     },
@@ -573,11 +573,11 @@ const SchedulesPage: React.FC = () => {
       render: (_, record) => (
         <div>
           <div>
-            {record.subjectAssignment.teacher.user.profile.firstName}{' '}
-            {record.subjectAssignment.teacher.user.profile.lastName}
+            {record.subjectAssignment?.teacher?.user?.profile?.firstName || 'No'}{' '}
+            {record.subjectAssignment?.teacher?.user?.profile?.lastName || 'asignado'}
           </div>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            {record.subjectAssignment.teacher.employeeNumber}
+            {record.subjectAssignment?.teacher?.employeeNumber || 'N/A'}
           </Text>
         </div>
       ),
@@ -599,8 +599,8 @@ const SchedulesPage: React.FC = () => {
       key: 'classroom',
       render: (_, record) => (
         <div>
-          <div>{record.classroom.name}</div>
-          <Tag color="blue">{record.classroom.code}</Tag>
+          <div>{record.classroom?.name || 'No asignada'}</div>
+          <Tag color="blue">{record.classroom?.code || 'N/A'}</Tag>
         </div>
       ),
     },
@@ -634,7 +634,7 @@ const SchedulesPage: React.FC = () => {
           />
           <Popconfirm
             title="¿Está seguro de eliminar esta sesión?"
-            onConfirm={() => handleDeleteSession(record.id)}
+            onConfirm={() => record.id && handleDeleteSession(record.id)}
             okText="Sí"
             cancelText="No"
           >
@@ -831,7 +831,7 @@ const SchedulesPage: React.FC = () => {
                 <Select placeholder="Seleccionar nivel (opcional)">
                   {educationalLevels.map(level => (
                     <Option key={level.id} value={level.id}>
-                      {level.name}
+                      {level.name || 'Sin nombre'}
                     </Option>
                   ))}
                 </Select>
@@ -943,7 +943,7 @@ const SchedulesPage: React.FC = () => {
             <Select placeholder="Seleccionar nivel educativo">
               {educationalLevels.map(level => (
                 <Option key={level.id} value={level.id}>
-                  {level.name}
+                  {level.name || 'Sin nombre'}
                 </Option>
               ))}
             </Select>
@@ -1015,7 +1015,7 @@ const SchedulesPage: React.FC = () => {
                 >
                   {subjectAssignments.map(assignment => (
                     <Option key={assignment.id} value={assignment.id}>
-                      {assignment.subject.name} - {assignment.classGroup.name} ({assignment.teacher.user.profile.firstName} {assignment.teacher.user.profile.lastName})
+                      {assignment.subject?.name || 'Sin asignatura'} - {assignment.classGroup?.name || 'Sin grupo'} ({assignment.teacher?.user?.profile?.firstName || 'No'} {assignment.teacher?.user?.profile?.lastName || 'asignado'})
                     </Option>
                   ))}
                 </Select>
@@ -1030,7 +1030,7 @@ const SchedulesPage: React.FC = () => {
                 <Select placeholder="Seleccionar aula">
                   {classrooms.filter(c => c.isActive).map(classroom => (
                     <Option key={classroom.id} value={classroom.id}>
-                      {classroom.name} ({classroom.code})
+                      {classroom.name || 'Sin nombre'} ({classroom.code || 'N/A'})
                     </Option>
                   ))}
                 </Select>
@@ -1048,7 +1048,7 @@ const SchedulesPage: React.FC = () => {
                 <Select placeholder="Seleccionar franja">
                   {timeSlots.filter(t => t.isActive && !t.isBreak).map(timeSlot => (
                     <Option key={timeSlot.id} value={timeSlot.id}>
-                      {timeSlot.name} ({timeSlot.startTime} - {timeSlot.endTime})
+                      {timeSlot.name || 'Sin nombre'} ({timeSlot.startTime || 'N/A'} - {timeSlot.endTime || 'N/A'})
                     </Option>
                   ))}
                 </Select>
@@ -1081,7 +1081,7 @@ const SchedulesPage: React.FC = () => {
                 <Select placeholder="Seleccionar año académico">
                   {academicYears.map(year => (
                     <Option key={year.id} value={year.id}>
-                      {year.name} {year.isCurrent && <Tag color="green">Actual</Tag>}
+                      {year.name || 'Sin nombre'} {year.isCurrent && <Tag color="green">Actual</Tag>}
                     </Option>
                   ))}
                 </Select>
@@ -1139,11 +1139,11 @@ const SchedulesPage: React.FC = () => {
             {selectedItem.type === 'classroom' && (
               <>
                 <div>
-                  <Title level={3}>{selectedItem.name}</Title>
+                  <Title level={3}>{selectedItem.name || 'Sin nombre'}</Title>
                   <Space>
-                    <Tag color="blue">{selectedItem.code}</Tag>
-                    <Tag color="green">{CLASSROOM_TYPE_LABELS[selectedItem.type as keyof typeof CLASSROOM_TYPE_LABELS]}</Tag>
-                    <Tag color="orange">{selectedItem.capacity} personas</Tag>
+                    <Tag color="blue">{selectedItem.code || 'N/A'}</Tag>
+                    <Tag color="green">{CLASSROOM_TYPE_LABELS[selectedItem.type as keyof typeof CLASSROOM_TYPE_LABELS] || 'N/A'}</Tag>
+                    <Tag color="orange">{selectedItem.capacity || 0} personas</Tag>
                   </Space>
                 </div>
                 <Divider />

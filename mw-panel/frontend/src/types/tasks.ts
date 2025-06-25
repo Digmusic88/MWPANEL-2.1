@@ -111,6 +111,8 @@ export interface Task {
   allowedFileTypes?: string;
   maxFileSize?: number;
   rubric?: string;
+  valuationType?: 'emoji' | 'score' | 'rubric';
+  rubricId?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -183,6 +185,8 @@ export interface CreateTaskForm {
   allowedFileTypes?: string[];
   maxFileSizeMB?: number;
   rubric?: string;
+  valuationType?: 'emoji' | 'score' | 'rubric';
+  rubricId?: string;
   targetStudentIds?: string[];
 }
 

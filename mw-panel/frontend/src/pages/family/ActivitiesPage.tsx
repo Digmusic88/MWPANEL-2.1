@@ -363,7 +363,7 @@ const ActivitiesPage: React.FC = () => {
                       {students.map(student => (
                         <Option key={student.id} value={student.id}>
                           <Space>
-                            <Avatar size="small" icon={<UserOutlined />} />
+                            <Avatar icon={<UserOutlined />} />
                             {student.user.profile.firstName} {student.user.profile.lastName}
                           </Space>
                         </Option>
@@ -589,7 +589,7 @@ const ActivitiesPage: React.FC = () => {
                                 </div>
                               }
                               title={
-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Space direction="vertical" style={{ width: '100%' }}>
                                   <div className="flex justify-between items-start">
                                     <Text strong className="text-lg">
                                       {assessment.activity.name}
@@ -618,7 +618,7 @@ const ActivitiesPage: React.FC = () => {
                                 </Space>
                               }
                               description={
-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Space direction="vertical" style={{ width: '100%' }}>
                                   <Row gutter={16}>
                                     <Col xs={24} sm={12}>
                                       <Space size="small">
@@ -738,7 +738,7 @@ const ActivitiesPage: React.FC = () => {
                         </div>
                       }
                       title={
-                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
                           <div className="flex justify-between items-start">
                             <Text strong className="text-lg">
                               {assessment.activity.name}
@@ -767,7 +767,7 @@ const ActivitiesPage: React.FC = () => {
                         </Space>
                       }
                       description={
-                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
                           {assessment.activity.subjectAssignment && (
                             <div className="flex items-center gap-2 mb-2">
                               <Tag color="blue">

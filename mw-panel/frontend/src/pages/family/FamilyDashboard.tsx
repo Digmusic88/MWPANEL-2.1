@@ -324,7 +324,7 @@ const FamilyDashboardHome: React.FC = () => {
           type="error"
           showIcon
           action={
-            <Button size="small" onClick={fetchDashboardData}>
+            <Button onClick={fetchDashboardData}>
               Reintentar
             </Button>
           }
@@ -490,7 +490,7 @@ const FamilyDashboardHome: React.FC = () => {
               extra={
                 <Button 
                   type="primary" 
-                  size="small" 
+                  
                   icon={<EyeOutlined />}
                   onClick={() => navigate('/family/tasks')}
                 >
@@ -501,7 +501,7 @@ const FamilyDashboardHome: React.FC = () => {
             >
               {loadingTasks ? (
                 <div className="text-center py-4">
-                  <Spin size="small" />
+                  <Spin />
                 </div>
               ) : pendingTasks.length > 0 ? (
                 <List
@@ -538,7 +538,7 @@ const FamilyDashboardHome: React.FC = () => {
                             </div>
                           }
                           description={
-                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            <Space direction="vertical" style={{ width: '100%' }}>
                               <div className="flex justify-between items-center">
                                 <Tag color="blue" className="text-xs">
                                   {task.subjectAssignment.subject.code}
@@ -593,7 +593,7 @@ const FamilyDashboardHome: React.FC = () => {
               extra={
                 <Button 
                   type="link" 
-                  size="small" 
+                  
                   icon={<EyeOutlined />}
                   onClick={() => navigate('/family/activities')}
                 >
@@ -604,7 +604,7 @@ const FamilyDashboardHome: React.FC = () => {
             >
               {loadingActivities ? (
                 <div className="text-center py-4">
-                  <Spin size="small" />
+                  <Spin />
                 </div>
               ) : recentActivities.length > 0 ? (
                 <List

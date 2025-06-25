@@ -38,10 +38,14 @@ import {
   ClockCircleOutlined,
   SendOutlined,
   UserOutlined,
+  PaperClipOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import apiClient from '@services/apiClient';
+import TaskAttachmentManager from './TaskAttachmentManager';
+import { Rubric, useRubrics } from '../../hooks/useRubrics';
+import RubricGrid from '../../components/rubrics/RubricGrid';
 import {
   Task,
   TaskStatus,
@@ -88,6 +92,8 @@ const TasksPage: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [attachmentTaskId, setAttachmentTaskId] = useState<string | null>(null);
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
   
@@ -98,11 +104,18 @@ const TasksPage: React.FC = () => {
   });
   const [total, setTotal] = useState(0);
   
+  // Estados para rúbricas
+  const { rubrics, fetchRubrics } = useRubrics();
+  const [selectedRubric, setSelectedRubric] = useState<Rubric | null>(null);
+  const [rubricViewerVisible, setRubricViewerVisible] = useState(false);
+  const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     fetchTasks();
     fetchStatistics();
     fetchSubjectAssignments();
+    fetchRubrics();
   }, [filters]);
 
   const fetchTasks = async () => {
@@ -158,12 +171,16 @@ const TasksPage: React.FC = () => {
         dueDate: dayjs(values.dueDate).toISOString(),
         allowedFileTypes: values.allowedFileTypes?.filter(type => type.trim() !== ''),
         latePenalty: values.latePenalty ? values.latePenalty / 100 : undefined,
+        // Incluir datos de evaluación por rúbrica
+        valuationType: values.valuationType || 'score',
+        rubricId: values.valuationType === 'rubric' ? values.rubricId : undefined,
       };
 
       await apiClient.post('/tasks', taskData);
       message.success('Tarea creada exitosamente');
       setCreateModalVisible(false);
       createForm.resetFields();
+      setSelectedRubric(null);
       fetchTasks();
       fetchStatistics();
     } catch (error: any) {
@@ -249,6 +266,16 @@ const TasksPage: React.FC = () => {
     setDetailDrawerVisible(true);
   };
 
+  const openAttachmentModal = (taskId: string) => {
+    setAttachmentTaskId(taskId);
+    setAttachmentModalVisible(true);
+  };
+
+  const closeAttachmentModal = () => {
+    setAttachmentModalVisible(false);
+    setAttachmentTaskId(null);
+  };
+
   const getSubmissionProgress = (task: Task) => {
     const total = task.submissions.length;
     const submitted = task.submissions.filter(s => s.status !== 'not_submitted').length;
@@ -319,7 +346,7 @@ const TasksPage: React.FC = () => {
             </div>
             <Progress 
               percent={progress} 
-              size="small" 
+              
               strokeColor={progress >= 80 ? '#52c41a' : progress >= 50 ? '#faad14' : '#ff4d4f'}
             />
           </div>
@@ -343,7 +370,7 @@ const TasksPage: React.FC = () => {
             </div>
             <Progress 
               percent={progress} 
-              size="small" 
+              
               strokeColor={progress >= 80 ? '#52c41a' : progress >= 50 ? '#faad14' : '#ff4d4f'}
             />
           </div>
@@ -369,6 +396,14 @@ const TasksPage: React.FC = () => {
               type="text" 
               icon={<EditOutlined />} 
               onClick={() => openEditModal(record)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Archivos Adjuntos">
+            <Button 
+              type="text" 
+              icon={<PaperClipOutlined />} 
+              onClick={() => openAttachmentModal(record.id)}
             />
           </Tooltip>
 
@@ -698,6 +733,114 @@ const TasksPage: React.FC = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
+                name="valuationType"
+                label="Tipo de Evaluación"
+                initialValue="score"
+              >
+                <Select
+                  placeholder="Seleccionar tipo de evaluación"
+                  onChange={(value) => {
+                    if (value !== 'rubric') {
+                      createForm.setFieldsValue({ rubricId: undefined });
+                      setSelectedRubric(null);
+                    }
+                  }}
+                >
+                  <Option value="emoji">😊 Emojis (Muy Bien, Bien, Regular)</Option>
+                  <Option value="score">🔢 Puntuación Numérica</Option>
+                  <Option value="rubric">📋 Rúbrica de Evaluación</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prevValues, curValues) => prevValues.valuationType !== curValues.valuationType}
+              >
+                {({ getFieldValue }) => {
+                  const valuationType = getFieldValue('valuationType');
+                  return valuationType === 'rubric' ? (
+                    <Form.Item
+                      name="rubricId"
+                      label="Seleccionar Rúbrica"
+                      rules={[
+                        {
+                          required: true,
+                          message: 'Selecciona una rúbrica para este tipo de evaluación'
+                        }
+                      ]}
+                    >
+                      <Select
+                        placeholder="Seleccionar rúbrica"
+                        onChange={(rubricId) => {
+                          const rubric = rubrics.find(r => r.id === rubricId);
+                          setSelectedRubric(rubric || null);
+                        }}
+                        dropdownRender={menu => (
+                          <div>
+                            {menu}
+                            <Divider style={{ margin: '8px 0' }} />
+                            <div style={{ padding: '8px', textAlign: 'center' }}>
+                              <Button type="link" onClick={() => window.open('/teacher/rubrics', '_blank')}>
+                                + Crear nueva rúbrica
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      >
+                        {rubrics
+                          .filter(r => r.status === 'active' && !r.isTemplate)
+                          .map(rubric => (
+                            <Option key={rubric.id} value={rubric.id}>
+                              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Text strong>{rubric.name}</Text>
+                                <Space>
+                                  <Tag color="blue">{rubric.criteriaCount}C</Tag>
+                                  <Tag color="purple">{rubric.levelsCount}N</Tag>
+                                  <Tag color="orange">{rubric.maxScore}pts</Tag>
+                                </Space>
+                              </Space>
+                            </Option>
+                          ))}
+                      </Select>
+                    </Form.Item>
+                  ) : null;
+                }}
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Vista previa de rúbrica seleccionada */}
+          {selectedRubric && (
+            <Form.Item label="Vista Previa de la Rúbrica">
+              <Card size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space>
+                    <Text strong>{selectedRubric.name}</Text>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => setRubricViewerVisible(true)}
+                    >
+                      Ver completa
+                    </Button>
+                  </Space>
+                  {selectedRubric.description && (
+                    <Text type="secondary">{selectedRubric.description}</Text>
+                  )}
+                  <Space>
+                    <Tag color="blue">{selectedRubric.criteriaCount} criterios</Tag>
+                    <Tag color="purple">{selectedRubric.levelsCount} niveles</Tag>
+                    <Tag color="orange">Máximo {selectedRubric.maxScore} puntos</Tag>
+                  </Space>
+                </Space>
+              </Card>
+            </Form.Item>
+          )}
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
                 name="assignedDate"
                 label="Fecha de Asignación"
                 rules={[{ required: true, message: 'La fecha de asignación es requerida' }]}
@@ -1023,6 +1166,42 @@ const TasksPage: React.FC = () => {
           </div>
         )}
       </Drawer>
+
+      {/* Task Attachments Manager */}
+      {attachmentTaskId && (
+        <TaskAttachmentManager
+          taskId={attachmentTaskId}
+          isVisible={attachmentModalVisible}
+          onClose={closeAttachmentModal}
+          onAttachmentChange={() => {
+            // Optionally refresh tasks list or update specific task
+            fetchTasks();
+          }}
+        />
+      )}
+
+      {/* Modal visor de rúbrica */}
+      <Modal
+        title={selectedRubric?.name}
+        open={rubricViewerVisible}
+        onCancel={() => {
+          setRubricViewerVisible(false);
+        }}
+        width={1200}
+        footer={[
+          <Button key="close" onClick={() => setRubricViewerVisible(false)}>
+            Cerrar
+          </Button>
+        ]}
+      >
+        {selectedRubric && (
+          <RubricGrid
+            rubric={selectedRubric}
+            editable={false}
+            viewMode="view"
+          />
+        )}
+      </Modal>
     </div>
   );
 };
