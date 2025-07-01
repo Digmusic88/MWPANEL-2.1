@@ -1,0 +1,30 @@
+import { SchedulesService } from './schedules.service';
+import { CreateClassroomDto } from './dto/create-classroom.dto';
+import { UpdateClassroomDto } from './dto/update-classroom.dto';
+import { CreateTimeSlotDto } from './dto/create-time-slot.dto';
+import { UpdateTimeSlotDto } from './dto/update-time-slot.dto';
+import { CreateScheduleSessionDto } from './dto/create-schedule-session.dto';
+import { UpdateScheduleSessionDto } from './dto/update-schedule-session.dto';
+export declare class SchedulesController {
+    private readonly schedulesService;
+    constructor(schedulesService: SchedulesService);
+    findAllClassrooms(): Promise<import("../students/entities/classroom.entity").Classroom[]>;
+    createClassroom(createClassroomDto: CreateClassroomDto): Promise<import("../students/entities/classroom.entity").Classroom>;
+    findOneClassroom(id: string): Promise<import("../students/entities/classroom.entity").Classroom>;
+    updateClassroom(id: string, updateClassroomDto: UpdateClassroomDto): Promise<import("../students/entities/classroom.entity").Classroom>;
+    removeClassroom(id: string): Promise<void>;
+    findAllTimeSlots(): Promise<import("../students/entities/time-slot.entity").TimeSlot[]>;
+    findTimeSlotsByEducationalLevel(educationalLevelId: string): Promise<import("../students/entities/time-slot.entity").TimeSlot[]>;
+    createTimeSlot(createTimeSlotDto: CreateTimeSlotDto): Promise<import("../students/entities/time-slot.entity").TimeSlot>;
+    findOneTimeSlot(id: string): Promise<import("../students/entities/time-slot.entity").TimeSlot>;
+    updateTimeSlot(id: string, updateTimeSlotDto: UpdateTimeSlotDto): Promise<import("../students/entities/time-slot.entity").TimeSlot>;
+    removeTimeSlot(id: string): Promise<void>;
+    findAllScheduleSessions(): Promise<import("../students/entities/schedule-session.entity").ScheduleSession[]>;
+    findScheduleSessionsByTeacher(teacherId: string): Promise<import("../students/entities/schedule-session.entity").ScheduleSession[]>;
+    findScheduleSessionsByClassGroup(classGroupId: string): Promise<import("../students/entities/schedule-session.entity").ScheduleSession[]>;
+    findScheduleSessionsByClassroom(classroomId: string): Promise<import("../students/entities/schedule-session.entity").ScheduleSession[]>;
+    createScheduleSession(createScheduleSessionDto: CreateScheduleSessionDto): Promise<import("../students/entities/schedule-session.entity").ScheduleSession>;
+    updateScheduleSession(id: string, updateScheduleSessionDto: UpdateScheduleSessionDto): Promise<import("../students/entities/schedule-session.entity").ScheduleSession>;
+    removeScheduleSession(id: string): Promise<void>;
+    findCurrentTeacherSchedule(request: any): Promise<import("../students/entities/schedule-session.entity").ScheduleSession[]>;
+}

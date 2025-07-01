@@ -52,6 +52,8 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        const { refreshToken } = get()
+        
         // Clear auth data
         set({
           user: null,
@@ -62,7 +64,12 @@ export const useAuthStore = create<AuthStore>()(
         })
 
         // Call logout API to invalidate tokens
-        authService.logout().catch(console.error)
+        authService.logout(refreshToken || undefined).catch((error) => {
+          // Don't log 401 errors during logout (token expired is expected)
+          if (error?.response?.status !== 401) {
+            console.error('Logout error:', error)
+          }
+        })
       },
 
       refreshAuth: async () => {

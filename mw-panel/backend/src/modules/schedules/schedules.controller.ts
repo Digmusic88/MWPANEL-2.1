@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
@@ -185,5 +186,15 @@ export class SchedulesController {
   @Roles(UserRole.ADMIN)
   removeScheduleSession(@Param('id') id: string) {
     return this.schedulesService.removeScheduleSession(id);
+  }
+
+  // ==================== TEACHER SPECIFIC ENDPOINTS ====================
+
+  @Get('teacher/current')
+  @ApiOperation({ summary: 'Obtener horario del profesor actual' })
+  @ApiResponse({ status: 200, description: 'Horario del profesor obtenido exitosamente' })
+  @Roles(UserRole.TEACHER)
+  findCurrentTeacherSchedule(@Request() request: any) {
+    return this.schedulesService.findScheduleSessionsByTeacher(request.user?.id);
   }
 }

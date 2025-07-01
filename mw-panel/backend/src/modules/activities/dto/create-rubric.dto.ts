@@ -50,13 +50,15 @@ export class CreateRubricLevelDto {
 }
 
 export class CreateRubricCellDto {
-  @ApiProperty({ description: 'ID del criterio' })
-  @IsUUID()
-  criterionId: string;
+  @ApiProperty({ description: 'ID del criterio', required: false })
+  @IsOptional()
+  @IsString()
+  criterionId?: string;
 
-  @ApiProperty({ description: 'ID del nivel' })
-  @IsUUID()
-  levelId: string;
+  @ApiProperty({ description: 'ID del nivel', required: false })
+  @IsOptional()
+  @IsString()
+  levelId?: string;
 
   @ApiProperty({ description: 'Contenido de la celda', example: 'Texto muy claro y coherente' })
   @IsString()

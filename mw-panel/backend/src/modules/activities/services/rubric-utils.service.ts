@@ -38,10 +38,16 @@ export class RubricUtilsService {
     const lines = markdownData.trim().split('\n').map(line => line.trim());
     
     // Filtrar líneas vacías y separadores
-    const dataLines = lines.filter(line => 
-      line.length > 0 && 
-      !line.match(/^\|[\s\-:]+\|$/) // Excluir líneas de separación como |---|---|
-    );
+    const dataLines = lines.filter(line => {
+      if (line.length === 0) return false;
+      
+      // Excluir líneas que contienen solo guiones, espacios, dos puntos y pipes
+      // Ejemplos a excluir: |---|---|, |:--:|:--:|, | --- | --- |
+      const cleanLine = line.replace(/\|/g, '').trim();
+      const isSeparatorLine = /^[\s\-:]+$/.test(cleanLine);
+      
+      return !isSeparatorLine;
+    });
 
     if (dataLines.length < 2) {
       throw new Error('Formato de tabla inválido. Se requiere al menos una fila de encabezados y una fila de datos.');

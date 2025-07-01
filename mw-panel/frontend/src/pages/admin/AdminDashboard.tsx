@@ -7,9 +7,15 @@ import ClassGroupsPage from './ClassGroupsPage'
 import SubjectsPage from './SubjectsPage'
 import SchedulesPage from './SchedulesPage'
 import ClassSchedulesPage from './ClassSchedulesPage'
+import AdminCalendarPage from './AdminCalendarPage'
+import AdminGradesPage from './AdminGradesPage'
+import AdminEvaluationsPage from './AdminEvaluationsPage'
 import EnrollmentPage from './EnrollmentPage'
 import MessagesPage from '../communications/MessagesPage'
 import NotificationsPage from '../communications/NotificationsPage'
+import AdminProfilePage from './AdminProfilePage'
+import AdminSettingsPage from './AdminSettingsPage'
+import CalendarWidget from '@components/calendar/CalendarWidget'
 import { Card, Row, Col, Statistic, Typography, Space, Progress, Spin, message } from 'antd'
 import apiClient from '@services/apiClient'
 import {
@@ -231,38 +237,68 @@ const AdminDashboardHome: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Recent Activity */}
-      <Card title="Actividad Reciente">
-        <Space direction="vertical" className="w-full">
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-            <FileTextOutlined className="text-blue-600" />
-            <div>
-              <Text strong>Nueva evaluación completada</Text>
-              <div className="text-sm text-gray-500">
-                María García evaluó a 3º de Primaria - hace 2 horas
+      {/* Calendar and Recent Activity */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={16}>
+          <CalendarWidget 
+            userRole="admin"
+            height={700}
+            showEventList={true}
+            maxEvents={6}
+          />
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="Actividad Reciente" style={{ height: 700, overflow: 'auto' }}>
+            <Space direction="vertical" className="w-full">
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                <FileTextOutlined className="text-blue-600" />
+                <div>
+                  <Text strong>Nueva evaluación completada</Text>
+                  <div className="text-sm text-gray-500">
+                    María García evaluó a 3º de Primaria - hace 2 horas
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-            <UserOutlined className="text-green-600" />
-            <div>
-              <Text strong>Nuevo estudiante registrado</Text>
-              <div className="text-sm text-gray-500">
-                Juan Pérez se unió a 1º de Secundaria - hace 4 horas
+              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                <UserOutlined className="text-green-600" />
+                <div>
+                  <Text strong>Nuevo estudiante registrado</Text>
+                  <div className="text-sm text-gray-500">
+                    Juan Pérez se unió a 1º de Secundaria - hace 4 horas
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-            <TeamOutlined className="text-purple-600" />
-            <div>
-              <Text strong>Profesor asignado</Text>
-              <div className="text-sm text-gray-500">
-                Ana López asignada a Matemáticas 2º ESO - hace 1 día
+              <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                <TeamOutlined className="text-purple-600" />
+                <div>
+                  <Text strong>Profesor asignado</Text>
+                  <div className="text-sm text-gray-500">
+                    Ana López asignada a Matemáticas 2º ESO - hace 1 día
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </Space>
-      </Card>
+              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                <RiseOutlined className="text-orange-600" />
+                <div>
+                  <Text strong>Sistema actualizado</Text>
+                  <div className="text-sm text-gray-500">
+                    Actualización v2.1.3 instalada - hace 2 días
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                <BookOutlined className="text-red-600" />
+                <div>
+                  <Text strong>Mantenimiento programado</Text>
+                  <div className="text-sm text-gray-500">
+                    Backup automático completado - hace 3 días
+                  </div>
+                </div>
+              </div>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   )
 }
@@ -279,9 +315,14 @@ const AdminDashboard: React.FC = () => {
         <Route path="subjects" element={<SubjectsPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
         <Route path="class-schedules" element={<ClassSchedulesPage />} />
+        <Route path="calendar" element={<AdminCalendarPage />} />
+        <Route path="grades" element={<AdminGradesPage />} />
+        <Route path="evaluations" element={<AdminEvaluationsPage />} />
         <Route path="enrollment" element={<EnrollmentPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="profile" element={<AdminProfilePage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="*" element={
           <div style={{ padding: '20px', backgroundColor: '#ffcccc', border: '2px solid orange' }}>
             <h1>RUTA NO ENCONTRADA EN ADMIN</h1>

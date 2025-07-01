@@ -1,0 +1,30 @@
+import { Repository } from 'typeorm';
+import { SystemSetting, SettingCategory } from './entities/system-setting.entity';
+import { CreateSystemSettingDto, UpdateSystemSettingDto } from './dto/system-setting.dto';
+export declare class SettingsService {
+    private settingsRepository;
+    private cache;
+    constructor(settingsRepository: Repository<SystemSetting>);
+    create(createDto: CreateSystemSettingDto): Promise<SystemSetting>;
+    findAll(category?: SettingCategory): Promise<SystemSetting[]>;
+    findByKey(key: string): Promise<SystemSetting>;
+    update(key: string, updateDto: UpdateSystemSettingDto): Promise<SystemSetting>;
+    delete(key: string): Promise<void>;
+    getValue<T = any>(key: string, defaultValue?: T): Promise<T>;
+    getBoolean(key: string, defaultValue?: boolean): Promise<boolean>;
+    getString(key: string, defaultValue?: string): Promise<string>;
+    getNumber(key: string, defaultValue?: number): Promise<number>;
+    getJSON<T = any>(key: string, defaultValue?: T): Promise<T>;
+    setValue(key: string, value: any): Promise<void>;
+    setBoolean(key: string, value: boolean): Promise<void>;
+    setString(key: string, value: string): Promise<void>;
+    setNumber(key: string, value: number): Promise<void>;
+    setJSON(key: string, value: any): Promise<void>;
+    isModuleEnabled(moduleName: string): Promise<boolean>;
+    enableModule(moduleName: string): Promise<void>;
+    disableModule(moduleName: string): Promise<void>;
+    initializeDefaultSettings(): Promise<void>;
+    private initializeCache;
+    private validateValue;
+    private valueToString;
+}

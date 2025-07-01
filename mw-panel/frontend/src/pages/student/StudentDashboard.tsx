@@ -1,8 +1,11 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import TasksPage from './TasksPage'
+import StudentGradesPage from './StudentGradesPage'
+import StudentCalendarPage from './StudentCalendarPage'
 import ProfilePage from './ProfilePage'
 import SettingsPage from './SettingsPage'
+import CalendarWidget from '@components/calendar/CalendarWidget'
 import { Card, Row, Col, Statistic, Typography, Space, Progress, List, Avatar } from 'antd'
 import {
   TrophyOutlined,
@@ -110,6 +113,18 @@ const StudentDashboardHome: React.FC = () => {
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
+        </Col>
+      </Row>
+
+      {/* Calendar Widget */}
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <CalendarWidget 
+            userRole="student"
+            height={700}
+            showEventList={true}
+            maxEvents={5}
+          />
         </Col>
       </Row>
 
@@ -242,6 +257,8 @@ const StudentDashboard: React.FC = () => {
     <Routes>
       <Route index element={<StudentDashboardHome />} />
       <Route path="tasks" element={<TasksPage />} />
+      <Route path="grades" element={<StudentGradesPage />} />
+      <Route path="calendar" element={<StudentCalendarPage />} />
       <Route path="profile" element={<ProfilePage />} />
       <Route path="settings" element={<SettingsPage />} />
     </Routes>

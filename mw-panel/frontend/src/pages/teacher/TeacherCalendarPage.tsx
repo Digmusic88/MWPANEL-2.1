@@ -31,6 +31,7 @@ import {
   ExclamationCircleOutlined,
   BellOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import CalendarPage from '../shared/CalendarPage';
 import apiClient from '@services/apiClient';
 import dayjs from 'dayjs';
@@ -70,6 +71,7 @@ interface ClassEvent {
 }
 
 const TeacherCalendarPage: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [teacherSchedule, setTeacherSchedule] = useState<TeacherSchedule[]>([]);
   const [taskDeadlines, setTaskDeadlines] = useState<TaskDeadline[]>([]);
@@ -84,15 +86,38 @@ const TeacherCalendarPage: React.FC = () => {
   const fetchTeacherData = async () => {
     try {
       setLoading(true);
-      const [scheduleResponse, deadlinesResponse, eventsResponse] = await Promise.all([
+      
+      // Use Promise.allSettled to handle individual failures gracefully
+      const [scheduleResult, deadlinesResult, eventsResult] = await Promise.allSettled([
         apiClient.get('/schedules/teacher/current'),
         apiClient.get('/tasks/teacher/upcoming-deadlines'),
         apiClient.get('/calendar/teacher/class-events'),
       ]);
 
-      setTeacherSchedule(scheduleResponse.data);
-      setTaskDeadlines(deadlinesResponse.data);
-      setClassEvents(eventsResponse.data);
+      // Handle schedule data
+      if (scheduleResult.status === 'fulfilled') {
+        setTeacherSchedule(scheduleResult.value.data || []);
+      } else {
+        console.warn('Error loading schedule:', scheduleResult.reason);
+        setTeacherSchedule([]);
+      }
+
+      // Handle deadlines data
+      if (deadlinesResult.status === 'fulfilled') {
+        setTaskDeadlines(deadlinesResult.value.data || []);
+      } else {
+        console.warn('Error loading deadlines:', deadlinesResult.reason);
+        setTaskDeadlines([]);
+      }
+
+      // Handle events data
+      if (eventsResult.status === 'fulfilled') {
+        setClassEvents(eventsResult.value.data || []);
+      } else {
+        console.warn('Error loading events:', eventsResult.reason);
+        setClassEvents([]);
+      }
+
     } catch (error: any) {
       console.error('Error fetching teacher data:', error);
       message.error('Error al cargar datos del profesor');
@@ -352,14 +377,14 @@ const TeacherCalendarPage: React.FC = () => {
                 <Button 
                   block 
                   icon={<BookOutlined />}
-                  onClick={() => window.location.href = '/teacher/tasks/create'}
+                  onClick={() => navigate('/teacher/tasks')}
                 >
                   Nueva Tarea
                 </Button>
                 <Button 
                   block 
                   icon={<TeamOutlined />}
-                  onClick={() => window.location.href = '/teacher/evaluations/create'}
+                  onClick={() => navigate('/teacher/evaluations')}
                 >
                   Nueva Evaluación
                 </Button>

@@ -1,0 +1,36 @@
+import { Repository } from 'typeorm';
+import { CalendarEvent, CalendarEventGroup, CalendarEventSubject, CalendarEventStudent, CalendarEventReminder, CalendarEventType } from './entities';
+import { CreateCalendarEventDto, UpdateCalendarEventDto, CalendarEventQueryDto } from './dto';
+import { User } from '../users/entities/user.entity';
+import { Teacher } from '../teachers/entities/teacher.entity';
+import { Student } from '../students/entities/student.entity';
+import { Family, FamilyStudent } from '../users/entities/family.entity';
+export declare class CalendarService {
+    private calendarEventsRepository;
+    private eventGroupsRepository;
+    private eventSubjectsRepository;
+    private eventStudentsRepository;
+    private eventRemindersRepository;
+    private usersRepository;
+    private teachersRepository;
+    private studentsRepository;
+    private familiesRepository;
+    private familyStudentsRepository;
+    constructor(calendarEventsRepository: Repository<CalendarEvent>, eventGroupsRepository: Repository<CalendarEventGroup>, eventSubjectsRepository: Repository<CalendarEventSubject>, eventStudentsRepository: Repository<CalendarEventStudent>, eventRemindersRepository: Repository<CalendarEventReminder>, usersRepository: Repository<User>, teachersRepository: Repository<Teacher>, studentsRepository: Repository<Student>, familiesRepository: Repository<Family>, familyStudentsRepository: Repository<FamilyStudent>);
+    create(createEventDto: CreateCalendarEventDto, userId: string): Promise<CalendarEvent>;
+    findAll(query: CalendarEventQueryDto, userId: string): Promise<CalendarEvent[]>;
+    findOne(id: string, userId: string): Promise<CalendarEvent>;
+    update(id: string, updateEventDto: UpdateCalendarEventDto, userId: string): Promise<CalendarEvent>;
+    remove(id: string, userId: string): Promise<void>;
+    private createEventAssignments;
+    private updateEventAssignments;
+    private createAutoReminders;
+    private applyVisibilityFilters;
+    private checkViewPermissions;
+    private checkEditPermissions;
+    getEventsByDateRange(startDate: string, endDate: string, userId: string): Promise<CalendarEvent[]>;
+    getUpcomingEvents(userId: string, days?: number): Promise<CalendarEvent[]>;
+    getEventsByType(type: CalendarEventType, userId: string): Promise<CalendarEvent[]>;
+    getEventsByStudent(studentId: string, userId: string): Promise<CalendarEvent[]>;
+    getTeacherClassEvents(userId: string): Promise<CalendarEvent[]>;
+}

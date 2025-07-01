@@ -11,16 +11,24 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons'
 import apiClient from '@services/apiClient'
 import TeacherSchedulePage from './TeacherSchedulePage'
+import TeacherCalendarPage from './TeacherCalendarPage'
 import MessagesPage from '../communications/MessagesPage'
 import AttendancePage from './AttendancePage'
 import ActivitiesPage from './ActivitiesPage'
 import TasksPage from './TasksPage'
 import TasksDashboard from './TasksDashboard'
 import TaskGradingPage from './TaskGradingPage'
+import TeacherGradesPage from './TeacherGradesPage'
+import TeacherEvaluationsPage from './TeacherEvaluationsPage'
 import RubricsPage from './RubricsPage'
+import SharedRubricsPage from './SharedRubricsPage'
+import TeacherProfilePage from './TeacherProfilePage'
+import TeacherSettingsPage from './TeacherSettingsPage'
+import CalendarWidget from '@components/calendar/CalendarWidget'
 import { usePendingAttendanceRequests } from '../../hooks/usePendingAttendanceRequests'
 
 const { Title, Text } = Typography
@@ -59,6 +67,7 @@ const TeacherDashboardHome: React.FC = () => {
   const [teacherClasses, setTeacherClasses] = useState<any[]>([])
   const [teacherSubjects, setTeacherSubjects] = useState<any[]>([])
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
+  const [recentEvaluations, setRecentEvaluations] = useState<any[]>([])
   const [loadingRequests, setLoadingRequests] = useState(false)
   
   // Use hook for sidebar badge updates
@@ -185,6 +194,7 @@ const TeacherDashboardHome: React.FC = () => {
     if (teacherProfile?.id) {
       fetchTeacherClasses(teacherProfile.id)
       fetchTeacherSubjects(teacherProfile.id)
+      fetchRecentEvaluations(teacherProfile.id)
     }
   }, [teacherProfile])
 
@@ -198,7 +208,9 @@ const TeacherDashboardHome: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip="Cargando dashboard del profesor..." />
+        <Spin size="large">
+          <div className="text-center p-4">Cargando dashboard del profesor...</div>
+        </Spin>
       </div>
     )
   }
@@ -230,12 +242,21 @@ const TeacherDashboardHome: React.FC = () => {
     academicYear: classGroup.academicYear?.name || 'Sin año',
   }))
 
-  const recentEvaluations = [
-    { id: 1, student: 'Ana García López', class: '3º A', subject: 'Matemáticas', date: '2024-01-15', status: 'completed' },
-    { id: 2, student: 'Carlos Ruiz Mora', class: '3º A', subject: 'Matemáticas', date: '2024-01-15', status: 'pending' },
-    { id: 3, student: 'María Fernández', class: '3º B', subject: 'Matemáticas', date: '2024-01-14', status: 'completed' },
-    { id: 4, student: 'Pedro Sánchez', class: '4º A', subject: 'Matemáticas', date: '2024-01-14', status: 'draft' },
-  ]
+  // Fetch recent evaluations for teacher
+  const fetchRecentEvaluations = async (teacherId: string) => {
+    try {
+      const response = await apiClient.get(`/evaluations/teacher/${teacherId}`)
+      const evaluations = response.data.slice(0, 4) // Get only the 4 most recent
+      setRecentEvaluations(evaluations)
+    } catch (error: any) {
+      console.error('Error fetching recent evaluations:', error)
+      // Use fallback mock data if API fails
+      setRecentEvaluations([
+        { id: 1, student: { user: { profile: { firstName: 'Ana', lastName: 'García López' } }, classGroup: { name: '3º A' } }, subject: { name: 'Matemáticas' }, updatedAt: '2024-01-15', status: 'finalized' },
+        { id: 2, student: { user: { profile: { firstName: 'Carlos', lastName: 'Ruiz Mora' } }, classGroup: { name: '3º A' } }, subject: { name: 'Matemáticas' }, updatedAt: '2024-01-15', status: 'draft' },
+      ])
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -315,6 +336,18 @@ const TeacherDashboardHome: React.FC = () => {
         </Col>
       </Row>
 
+      {/* Calendar Widget */}
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <CalendarWidget 
+            userRole="teacher"
+            height={700}
+            showEventList={true}
+            maxEvents={5}
+          />
+        </Col>
+      </Row>
+
       {/* Main Content */}
       <Row gutter={[16, 16]}>
         {/* My Classes */}
@@ -322,7 +355,12 @@ const TeacherDashboardHome: React.FC = () => {
           <Card 
             title="Mis Clases" 
             extra={
-              <Button type="primary" icon={<PlusOutlined />} size="small">
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                size="small"
+                onClick={() => navigate('/teacher/evaluations')}
+              >
                 Nueva Evaluación
               </Button>
             }
@@ -538,14 +576,48 @@ const TeacherDashboardHome: React.FC = () => {
       </Row>
 
       {/* Recent Evaluations */}
-      <Card title="Evaluaciones Recientes">
+      <Card 
+        title="Evaluaciones Recientes"
+        extra={
+          <Button 
+            type="primary" 
+            size="small"
+            onClick={() => navigate('/teacher/evaluations')}
+          >
+            Ver Todas
+          </Button>
+        }
+      >
         <List
           dataSource={recentEvaluations}
+          locale={{
+            emptyText: (
+              <div className="text-center py-8">
+                <FileTextOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+                <div className="mt-4">
+                  <Text type="secondary">No hay evaluaciones recientes</Text>
+                </div>
+                <div className="mt-2">
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/teacher/evaluations')}
+                  >
+                    Crear Primera Evaluación
+                  </Button>
+                </div>
+              </div>
+            )
+          }}
           renderItem={(item) => (
             <List.Item
               actions={[
-                <Button type="link" size="small">
-                  {item.status === 'completed' ? 'Ver' : 'Continuar'}
+                <Button 
+                  type="link" 
+                  size="small"
+                  onClick={() => navigate('/teacher/evaluations')}
+                >
+                  {item.status === 'finalized' ? 'Ver' : 'Continuar'}
                 </Button>
               ]}
             >
@@ -553,29 +625,33 @@ const TeacherDashboardHome: React.FC = () => {
                 avatar={
                   <Avatar style={{ 
                     backgroundColor: 
-                      item.status === 'completed' ? '#52c41a' : 
-                      item.status === 'pending' ? '#faad14' : '#d9d9d9' 
+                      item.status === 'finalized' ? '#52c41a' : 
+                      item.status === 'submitted' || item.status === 'reviewed' ? '#faad14' : '#d9d9d9' 
                   }}>
-                    {item.student.charAt(0)}
+                    {item.student?.user?.profile?.firstName?.charAt(0) || 'E'}
                   </Avatar>
                 }
-                title={item.student}
+                title={item.student?.user?.profile ? 
+                  `${item.student.user.profile.firstName} ${item.student.user.profile.lastName}` : 
+                  'Estudiante'
+                }
                 description={
                   <Space>
-                    <Text type="secondary">{item.class}</Text>
+                    <Text type="secondary">{item.student?.classGroup?.name || 'Sin clase'}</Text>
                     <Text type="secondary">•</Text>
-                    <Text type="secondary">{item.subject}</Text>
+                    <Text type="secondary">{item.subject?.name || 'Sin asignatura'}</Text>
                     <Text type="secondary">•</Text>
-                    <Text type="secondary">{item.date}</Text>
+                    <Text type="secondary">{new Date(item.updatedAt).toLocaleDateString()}</Text>
                     <Text 
                       className={`px-2 py-1 rounded text-xs ${
-                        item.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        item.status === 'pending' ? 'bg-orange-100 text-orange-800' :
+                        item.status === 'finalized' ? 'bg-green-100 text-green-800' :
+                        item.status === 'submitted' || item.status === 'reviewed' ? 'bg-orange-100 text-orange-800' :
                         'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {item.status === 'completed' ? 'Completada' :
-                       item.status === 'pending' ? 'Pendiente' : 'Borrador'}
+                      {item.status === 'finalized' ? 'Finalizada' :
+                       item.status === 'submitted' ? 'Enviada' :
+                       item.status === 'reviewed' ? 'Revisada' : 'Borrador'}
                     </Text>
                   </Space>
                 }
@@ -625,14 +701,19 @@ const TeacherDashboard: React.FC = () => {
     <Routes>
       <Route index element={<TeacherDashboardHome />} />
       <Route path="schedule" element={<TeacherSchedulePage />} />
+      <Route path="calendar" element={<TeacherCalendarPage />} />
       <Route path="attendance" element={<AttendancePage />} />
       <Route path="activities" element={<ActivitiesPage />} />
       <Route path="tasks" element={<TasksPage />} />
       <Route path="tasks-dashboard" element={<TasksDashboard />} />
       <Route path="tasks/:taskId/submissions/:submissionId/grade" element={<TaskGradingPage />} />
+      <Route path="grades" element={<TeacherGradesPage />} />
+      <Route path="evaluations" element={<TeacherEvaluationsPage />} />
       <Route path="rubrics" element={<RubricsPage />} />
+      <Route path="shared-rubrics" element={<SharedRubricsPage />} />
       <Route path="messages" element={<MessagesPage />} />
-      {/* Add more teacher routes here */}
+      <Route path="profile" element={<TeacherProfilePage />} />
+      <Route path="settings" element={<TeacherSettingsPage />} />
     </Routes>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Input, Button, Space, Typography, Tag, message, Modal, ColorPicker } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, BgColorsOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -35,9 +35,16 @@ const RubricGrid: React.FC<RubricGridProps> = ({
   const [colorModalVisible, setColorModalVisible] = useState(false);
   const [editingLevel, setEditingLevel] = useState<RubricLevel | null>(null);
 
-  // Ordenar criterios y niveles por order
-  const sortedCriteria = [...rubric.criteria].sort((a, b) => a.order - b.order);
-  const sortedLevels = [...rubric.levels].sort((a, b) => a.order - b.order);
+  // Ordenar criterios y niveles por order (memoizado para evitar re-renders innecesarios)
+  const sortedCriteria = useMemo(() => 
+    [...rubric.criteria].sort((a, b) => a.order - b.order), 
+    [rubric.criteria]
+  );
+  
+  const sortedLevels = useMemo(() => 
+    [...rubric.levels].sort((a, b) => a.order - b.order), 
+    [rubric.levels]
+  );
 
   // Obtener contenido de celda
   const getCellContent = (criterionId: string, levelId: string): string => {

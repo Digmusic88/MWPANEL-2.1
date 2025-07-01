@@ -212,8 +212,13 @@ const MessagesPage: React.FC = () => {
 
   const fetchAvailableGroups = async () => {
     try {
-      const response = await apiClient.get('/communications/available-groups');
-      setAvailableGroups(response.data);
+      // Solo cargar grupos si el usuario no es familia
+      if (user?.role !== 'family') {
+        const response = await apiClient.get('/communications/available-groups');
+        setAvailableGroups(response.data);
+      } else {
+        setAvailableGroups([]);
+      }
     } catch (error) {
       console.error('Error fetching available groups:', error);
       // Si hay error (ej: usuario sin permisos), establecer array vacío
@@ -223,10 +228,17 @@ const MessagesPage: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await apiClient.get('/students');
-      setStudents(response.data);
+      // Familias usan un endpoint diferente para obtener sus hijos
+      if (user?.role === 'family') {
+        const response = await apiClient.get('/families/my-children');
+        setStudents(response.data || []);
+      } else {
+        const response = await apiClient.get('/students');
+        setStudents(response.data);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
+      setStudents([]);
     }
   };
 

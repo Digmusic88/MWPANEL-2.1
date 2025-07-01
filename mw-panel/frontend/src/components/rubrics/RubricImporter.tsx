@@ -25,10 +25,9 @@ import {
   FileTextOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
-import { useRubrics, ImportRubricData } from '@/hooks/useRubrics';
+import { useRubrics, ImportRubricData, Rubric } from '../../hooks/useRubrics';
 import RubricGrid from './RubricGrid';
-import { Rubric } from '@/types/rubric';
-import apiClient from '@/services/apiClient';
+import apiClient from '../../services/apiClient';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -131,25 +130,25 @@ const RubricImporter: React.FC<RubricImporterProps> = ({
   const chatGPTPrompt = `Crea una rúbrica de evaluación en formato de tabla para [TEMA/ASIGNATURA].
 La tabla debe tener:
 - Primera columna: Criterios de evaluación
-- Columnas siguientes: Niveles de desempeño con puntuación entre paréntesis (ej: "Excelente (4)")
+- Columnas siguientes: Niveles de desempeño con puntuación entre paréntesis, ordenados de PEOR a MEJOR (izquierda a derecha)
 - Cada celda debe describir claramente qué se espera en ese nivel
 
-Formato la tabla así:
-| Criterios | Excelente (4) | Bueno (3) | Regular (2) | Necesita mejorar (1) |
-|-----------|---------------|-----------|-------------|---------------------|
-| [Criterio 1] | [Descripción] | [Descripción] | [Descripción] | [Descripción] |
-| [Criterio 2] | [Descripción] | [Descripción] | [Descripción] | [Descripción] |
+Formato la tabla así (IMPORTANTE: orden de peor a mejor):
+| Criterios | Necesita mejorar (1) | Regular (2) | Bueno (3) | Excelente (4) |
+|-----------|---------------------|-------------|-----------|---------------|
+| [Criterio 1] | [Descripción nivel más bajo] | [Descripción nivel medio-bajo] | [Descripción nivel medio-alto] | [Descripción nivel más alto] |
+| [Criterio 2] | [Descripción nivel más bajo] | [Descripción nivel medio-bajo] | [Descripción nivel medio-alto] | [Descripción nivel más alto] |
 
-Incluye al menos 4-5 criterios relevantes.`;
+Incluye al menos 4-5 criterios relevantes. El orden debe ser siempre de PEOR (1) a MEJOR (4).`;
 
-  const markdownExample = `| Criterios | Excelente (4) | Bueno (3) | Regular (2) | Necesita mejorar (1) |
-|-----------|---------------|-----------|-------------|---------------------|
-| Claridad | El texto es muy claro | El texto es claro | Algo confuso | Muy confuso |
-| Gramática | Sin errores | Pocos errores | Varios errores | Muchos errores |`;
+  const markdownExample = `| Criterios | Necesita mejorar (1) | Regular (2) | Bueno (3) | Excelente (4) |
+|-----------|---------------------|-------------|-----------|---------------|
+| Claridad | Muy confuso | Algo confuso | El texto es claro | El texto es muy claro |
+| Gramática | Muchos errores | Varios errores | Pocos errores | Sin errores |`;
 
-  const csvExample = `Criterios,Excelente (4),Bueno (3),Regular (2),Necesita mejorar (1)
-Claridad,El texto es muy claro,El texto es claro,Algo confuso,Muy confuso
-Gramática,Sin errores,Pocos errores,Varios errores,Muchos errores`;
+  const csvExample = `Criterios,Necesita mejorar (1),Regular (2),Bueno (3),Excelente (4)
+Claridad,Muy confuso,Algo confuso,El texto es claro,El texto es muy claro
+Gramática,Muchos errores,Varios errores,Pocos errores,Sin errores`;
 
   const instructions = [
     {
@@ -406,8 +405,8 @@ Gramática,Sin errores,Pocos errores,Varios errores,Muchos errores`;
             <TextArea
               rows={10}
               placeholder={importFormat === 'markdown' ? 
-                "| Criterios | Excelente (4) | Bueno (3) | Regular (2) | Necesita mejorar (1) |\n|-----------|---------------|-----------|-------------|---------------------|\n| ..." :
-                "Criterios,Excelente (4),Bueno (3),Regular (2),Necesita mejorar (1)\n..."
+                "| Criterios | Necesita mejorar (1) | Regular (2) | Bueno (3) | Excelente (4) |\n|-----------|---------------------|-------------|-----------|---------------|\n| ..." :
+                "Criterios,Necesita mejorar (1),Regular (2),Bueno (3),Excelente (4)\n..."
               }
               style={{ fontFamily: 'monospace', fontSize: '12px' }}
             />

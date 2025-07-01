@@ -794,7 +794,7 @@ const TasksPage: React.FC = () => {
                               setSelectedRubric(selectedRubric)
                             }
                           }}
-                          dropdownRender={menu => (
+                          popupRender={menu => (
                             <div>
                               {menu}
                               <Divider style={{ margin: '8px 0' }} />

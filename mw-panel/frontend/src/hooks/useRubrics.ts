@@ -371,6 +371,21 @@ export const useRubrics = () => {
     }
   };
 
+  // Obtener rúbricas compartidas conmigo
+  const fetchSharedWithMe = async (): Promise<Rubric[]> => {
+    try {
+      console.log('useRubrics - Calling /rubrics/shared-with-me');
+      const response = await apiClient.get('/rubrics/shared-with-me');
+      console.log('useRubrics - Response:', response.data);
+      return response.data;
+    } catch (err: any) {
+      console.error('useRubrics - Error:', err);
+      const errorMessage = err.response?.data?.message || 'Error al obtener rúbricas compartidas';
+      message.error(errorMessage);
+      return [];
+    }
+  };
+
   return {
     rubrics,
     loading,
@@ -387,6 +402,7 @@ export const useRubrics = () => {
     shareRubric,
     unshareRubric,
     fetchColleagues,
+    fetchSharedWithMe,
     generateColors,
     calculateScore,
   };

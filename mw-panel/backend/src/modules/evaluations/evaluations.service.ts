@@ -586,4 +586,48 @@ export class EvaluationsService {
       throw new BadRequestException(`Error creando datos de prueba: ${error.message}`);
     }
   }
+
+  async getEvaluationStats() {
+    try {
+      const [
+        totalEvaluations,
+        draftEvaluations,
+        submittedEvaluations,
+        reviewedEvaluations,
+        finalizedEvaluations
+      ] = await Promise.all([
+        this.evaluationsRepository.count(),
+        this.evaluationsRepository.count({ where: { status: EvaluationStatus.DRAFT } }),
+        this.evaluationsRepository.count({ where: { status: EvaluationStatus.SUBMITTED } }),
+        this.evaluationsRepository.count({ where: { status: EvaluationStatus.REVIEWED } }),
+        this.evaluationsRepository.count({ where: { status: EvaluationStatus.FINALIZED } })
+      ]);
+
+      // Calcular promedio de puntuaciones (de evaluaciones finalizadas)
+      const evaluationsWithScores = await this.evaluationsRepository.find({
+        where: { status: EvaluationStatus.FINALIZED },
+        select: ['overallScore']
+      });
+
+      const averageScore = evaluationsWithScores.length > 0
+        ? evaluationsWithScores.reduce((sum, evaluation) => sum + (evaluation.overallScore || 0), 0) / evaluationsWithScores.length
+        : 0;
+
+      const completionRate = totalEvaluations > 0 
+        ? (finalizedEvaluations / totalEvaluations) * 100 
+        : 0;
+
+      // Mapear a formato esperado por el frontend
+      return {
+        total: totalEvaluations,
+        completed: finalizedEvaluations,
+        pending: submittedEvaluations + reviewedEvaluations,
+        overdue: draftEvaluations, // Las evaluaciones en borrador se consideran pendientes/atrasadas
+        averageScore: Math.round(averageScore * 10) / 10,
+        completionRate: Math.round(completionRate * 10) / 10
+      };
+    } catch (error) {
+      throw new BadRequestException(`Error obteniendo estadísticas: ${error.message}`);
+    }
+  }
 }

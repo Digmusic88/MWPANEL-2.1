@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not, Brackets } from 'typeorm';
+import { Repository, In, Not, Brackets, ArrayContains } from 'typeorm';
 import { Rubric, RubricStatus } from '../entities/rubric.entity';
 import { RubricCriterion } from '../entities/rubric-criterion.entity';
 import { RubricLevel } from '../entities/rubric-level.entity';
@@ -53,9 +53,10 @@ export class RubricsService {
       await this.verifyTeacherSubjectAssignmentAccess(teacher.id, createRubricDto.subjectAssignmentId);
     }
 
-    // Crear la rúbrica
+    // Crear la rúbrica - excluir arrays de relaciones para evitar cascade duplicado
+    const { criteria: _, levels: __, cells: ___, ...rubricData } = createRubricDto;
     const rubric = this.rubricsRepository.create({
-      ...createRubricDto,
+      ...rubricData,
       teacherId: teacher.id,
       criteriaCount: createRubricDto.criteria.length,
       levelsCount: createRubricDto.levels.length,
@@ -86,12 +87,17 @@ export class RubricsService {
       })
     );
 
-    // Crear celdas - lógica simplificada para celdas generadas automáticamente
+    // Crear celdas - mapear desde datos parseados usando índices
     const cellsToCreate = [];
     for (let criterionIndex = 0; criterionIndex < savedCriteria.length; criterionIndex++) {
       for (let levelIndex = 0; levelIndex < savedLevels.length; levelIndex++) {
         const cellIndex = criterionIndex * savedLevels.length + levelIndex;
-        const cellContent = createRubricDto.cells[cellIndex]?.content || `Criterio ${criterionIndex + 1} - Nivel ${levelIndex + 1}`;
+        
+        // Obtener contenido de la celda desde los datos parseados
+        let cellContent = `Criterio ${criterionIndex + 1} - Nivel ${levelIndex + 1}`;
+        if (createRubricDto.cells && createRubricDto.cells[cellIndex]) {
+          cellContent = createRubricDto.cells[cellIndex].content;
+        }
         
         cellsToCreate.push(this.cellsRepository.create({
           content: cellContent,
@@ -110,47 +116,32 @@ export class RubricsService {
   }
 
   async findAll(userId: string, includeTemplates: boolean = false): Promise<Rubric[]> {
+    console.log('[DEBUG] findAll - userId:', userId);
     const teacher = await this.getTeacherByUserId(userId);
+    console.log('[DEBUG] findAll - teacher found:', teacher.id);
 
-    try {
-      // Primero intentar con una consulta más simple sin el operador ANY
-      const queryBuilder = this.rubricsRepository
-        .createQueryBuilder('rubric')
-        .leftJoinAndSelect('rubric.criteria', 'criteria')
-        .leftJoinAndSelect('rubric.levels', 'levels')
-        .leftJoinAndSelect('rubric.subjectAssignment', 'subjectAssignment')
-        .leftJoinAndSelect('subjectAssignment.subject', 'subject')
-        .leftJoinAndSelect('subjectAssignment.classGroup', 'classGroup')
-        .where('rubric.isActive = :isActive', { isActive: true })
-        .orderBy('rubric.createdAt', 'DESC');
-
-      // Usar consulta separada para el filtro del profesor
-      queryBuilder.andWhere(
-        new Brackets(qb => {
-          qb.where('rubric.teacherId = :teacherId', { teacherId: teacher.id });
-          // Temporalmente omitir la condición de sharedWith hasta que se resuelva el problema
-          // TODO: Implementar compartir rúbricas con consulta alternativa
-        })
-      );
-
-      if (!includeTemplates) {
-        queryBuilder.andWhere('rubric.isTemplate = :isTemplate', { isTemplate: false });
-      }
-
-      return await queryBuilder.getMany();
-    } catch (error) {
-      console.error('Error fetching rubrics:', error);
-      // Si hay un error, devolver solo las rúbricas del profesor actual
-      return this.rubricsRepository.find({
-        where: {
-          teacherId: teacher.id,
-          isActive: true,
-          ...(includeTemplates ? {} : { isTemplate: false })
-        },
-        relations: ['criteria', 'levels', 'subjectAssignment', 'subjectAssignment.subject', 'subjectAssignment.classGroup'],
-        order: { createdAt: 'DESC' }
-      });
-    }
+    // Usar consulta directa más simple y confiable
+    const rubrics = await this.rubricsRepository.find({
+      where: {
+        teacherId: teacher.id,
+        isActive: true,
+        ...(includeTemplates ? {} : { isTemplate: false })
+      },
+      relations: [
+        'criteria', 
+        'levels', 
+        'cells',
+        'cells.criterion',
+        'cells.level',
+        'subjectAssignment', 
+        'subjectAssignment.subject', 
+        'subjectAssignment.classGroup'
+      ],
+      order: { createdAt: 'DESC' }
+    });
+    
+    console.log('[DEBUG] findAll - found rubrics:', rubrics.length);
+    return rubrics;
   }
 
   async findOne(id: string): Promise<Rubric> {
@@ -183,14 +174,27 @@ export class RubricsService {
       throw new ForbiddenException('No tienes permisos para editar esta rúbrica');
     }
 
-    // Validar pesos si se actualizan criterios
+    // Excluir arrays de relaciones para evitar conflictos cascade
+    const { criteria: _, levels: __, cells: ___, ...updateData } = updateRubricDto;
+
+    // Preparar los datos de actualización con los conteos
+    const finalUpdateData: any = { ...updateData };
+
+    // Validar pesos si se actualizan criterios (aunque no se actualizarán en esta operación básica)
     if (updateRubricDto.criteria) {
       if (!this.rubricUtilsService.validateCriteriaWeights(updateRubricDto.criteria)) {
         updateRubricDto.criteria = this.rubricUtilsService.normalizeCriteriaWeights(updateRubricDto.criteria);
       }
+      // Actualizar conteo de criterios si se proporcionan
+      finalUpdateData.criteriaCount = updateRubricDto.criteria.length;
     }
 
-    await this.rubricsRepository.update(id, updateRubricDto);
+    if (updateRubricDto.levels) {
+      // Actualizar conteo de niveles si se proporcionan
+      finalUpdateData.levelsCount = updateRubricDto.levels.length;
+    }
+
+    await this.rubricsRepository.update(id, finalUpdateData);
     return this.findOne(id);
   }
 
@@ -219,6 +223,37 @@ export class RubricsService {
 
   // ==================== IMPORTACIÓN DESDE CHATGPT ====================
 
+  async previewImportFromChatGPT(format: string, data: string): Promise<any> {
+    let parsedData;
+    try {
+      if (format === ImportFormat.MARKDOWN) {
+        parsedData = this.rubricUtilsService.parseMarkdownTable(data);
+      } else if (format === ImportFormat.CSV) {
+        parsedData = this.rubricUtilsService.parseCSVTable(data);
+      } else {
+        throw new BadRequestException('Formato de importación no soportado');
+      }
+    } catch (error) {
+      throw new BadRequestException(`Error al parsear los datos: ${error.message}`);
+    }
+
+    // Retornar datos parseados para vista previa
+    return {
+      criteria: parsedData.criteria,
+      levels: parsedData.levels,
+      cells: parsedData.cells,
+      criteriaCount: parsedData.criteria.length,
+      levelsCount: parsedData.levels.length,
+      maxScore: 100,
+      isTemplate: false,
+      isActive: true,
+      isVisibleToFamilies: false,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   async importFromChatGPT(importDto: ImportRubricDto, userId: string): Promise<Rubric> {
     const teacher = await this.getTeacherByUserId(userId);
 
@@ -235,7 +270,7 @@ export class RubricsService {
       throw new BadRequestException(`Error al parsear los datos: ${error.message}`);
     }
 
-    // Crear DTO para la rúbrica
+    // Crear DTO para la rúbrica - sin celdas, se generarán automáticamente
     const createRubricDto: CreateRubricDto = {
       name: importDto.name,
       description: importDto.description,
@@ -247,10 +282,52 @@ export class RubricsService {
       originalImportData: importDto.data,
       criteria: parsedData.criteria,
       levels: parsedData.levels,
-      cells: parsedData.cells,
+      cells: [], // Vacío - se generarán automáticamente
     };
 
-    return this.create(createRubricDto, userId);
+    // Crear la rúbrica base
+    const createdRubric = await this.create(createRubricDto, userId);
+    
+    // Actualizar el contenido de las celdas con los datos parseados
+    return this.updateCellsContent(createdRubric.id, parsedData.cells);
+  }
+
+  /**
+   * Actualizar el contenido de las celdas de una rúbrica con datos parseados
+   */
+  private async updateCellsContent(rubricId: string, parsedCells: any[]): Promise<Rubric> {
+    const rubric = await this.findOne(rubricId);
+    
+    // Ordenar criterios y niveles para mapeo correcto
+    const sortedCriteria = rubric.criteria.sort((a, b) => a.order - b.order);
+    const sortedLevels = rubric.levels.sort((a, b) => a.order - b.order);
+    
+    // Actualizar el contenido de las celdas
+    for (let criterionIndex = 0; criterionIndex < sortedCriteria.length; criterionIndex++) {
+      for (let levelIndex = 0; levelIndex < sortedLevels.length; levelIndex++) {
+        const cellIndex = criterionIndex * sortedLevels.length + levelIndex;
+        
+        if (parsedCells[cellIndex]) {
+          const criterion = sortedCriteria[criterionIndex];
+          const level = sortedLevels[levelIndex];
+          
+          // Buscar la celda correspondiente
+          const cell = rubric.cells.find(c => 
+            c.criterionId === criterion.id && c.levelId === level.id
+          );
+          
+          if (cell) {
+            // Actualizar el contenido de la celda
+            await this.cellsRepository.update(cell.id, {
+              content: parsedCells[cellIndex].content
+            });
+          }
+        }
+      }
+    }
+    
+    // Devolver la rúbrica actualizada
+    return this.findOne(rubricId);
   }
 
   // ==================== EVALUACIONES CON RÚBRICAS ====================
@@ -354,10 +431,13 @@ export class RubricsService {
   // ==================== MÉTODOS HELPER ====================
 
   private async getTeacherByUserId(userId: string): Promise<Teacher> {
+    console.log('[DEBUG] getTeacherByUserId - userId:', userId);
     const teacher = await this.teachersRepository.findOne({
       where: { user: { id: userId } },
       relations: ['user']
     });
+
+    console.log('[DEBUG] getTeacherByUserId - teacher found:', teacher ? teacher.id : 'null');
 
     if (!teacher) {
       throw new NotFoundException('Profesor no encontrado para este usuario');
@@ -452,5 +532,50 @@ export class RubricsService {
       name: `${colleague.user.profile.firstName} ${colleague.user.profile.lastName}`,
       email: colleague.user.email
     }));
+  }
+
+  async getSharedWithMe(userId: string): Promise<Rubric[]> {
+    try {
+      console.log('[DEBUG] getSharedWithMe - userId:', userId);
+      const teacher = await this.getTeacherByUserId(userId);
+      console.log('[DEBUG] getSharedWithMe - teacher found:', teacher.id);
+      
+      // Buscar rúbricas donde el teacherId del profesor actual esté en el array sharedWith
+      // Simplificamos las relaciones temporalmente para debug
+      const sharedRubrics = await this.rubricsRepository.find({
+        where: { 
+          isActive: true,
+          sharedWith: ArrayContains([teacher.id])
+        },
+        relations: [
+          'criteria',
+          'levels', 
+          'cells',
+          'teacher'
+        ],
+        order: { updatedAt: 'DESC' }
+      });
+
+      console.log('[DEBUG] getSharedWithMe - found shared rubrics:', sharedRubrics.length);
+
+      // Agregar información del profesor que compartió cada rúbrica (simplificado)
+      return sharedRubrics.map(rubric => ({
+        ...rubric,
+        sharedByTeacher: {
+          id: rubric.teacher.id,
+          user: {
+            profile: {
+              firstName: 'Profesor',
+              lastName: 'Compartido'
+            }
+          }
+        },
+        // Agregar fecha de cuando fue compartida (simulada)
+        sharedAt: rubric.updatedAt
+      }));
+    } catch (error) {
+      console.error('[ERROR] getSharedWithMe:', error);
+      throw error;
+    }
   }
 }
