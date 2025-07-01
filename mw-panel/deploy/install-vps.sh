@@ -33,7 +33,7 @@ JWT_REFRESH_SECRET=""
 ADMIN_PASSWORD=""
 APP_DIR="/opt/mw-panel"
 BRANCH="main"
-GIT_REPO="https://github.com/tu-usuario/mw-panel.git"  # Cambiar por tu repositorio real
+GIT_REPO="https://github.com/Digmusic88/MWPANEL-2.1.git"
 DOCKER_COMPOSE_CMD=""
 
 # =============================================================================

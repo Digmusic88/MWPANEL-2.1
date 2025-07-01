@@ -86,14 +86,19 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update >/dev/null 2>&1
 apt-get install -y git curl wget >/dev/null 2>&1
 
-echo "📦 Verificando archivos MW Panel 2.0..."
+echo "📦 Clonando repositorio MW Panel 2.0..."
 if [[ ! -d "/opt/mw-panel" ]] || [[ ! -f "/opt/mw-panel/deploy/install-vps.sh" ]]; then
-    echo "❌ Error: Archivos del proyecto no encontrados en /opt/mw-panel"
-    echo "📋 Primero ejecuta: ./subir-archivos.sh"
-    exit 1
+    rm -rf /opt/mw-panel 2>/dev/null || true
+    git clone https://github.com/Digmusic88/MWPANEL-2.1.git /opt/mw-panel
+else
+    cd /opt/mw-panel
+    git remote set-url origin https://github.com/Digmusic88/MWPANEL-2.1.git
+    git fetch origin
+    git reset --hard origin/main
+    git clean -fd
 fi
 
-echo "✅ Archivos del proyecto encontrados"
+echo "✅ Repositorio clonado/actualizado"
 
 cd /opt/mw-panel
 
